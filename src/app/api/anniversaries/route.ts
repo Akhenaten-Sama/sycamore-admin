@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type')
     const upcoming = searchParams.get('upcoming')
 
-    let query: any = {}
+    const query: any = {}
 
     if (type) {
       query.type = type

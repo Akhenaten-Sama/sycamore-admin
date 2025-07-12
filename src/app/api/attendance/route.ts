@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const date = searchParams.get('date')
     const status = searchParams.get('status')
 
-    let query: any = {}
+    const query: any = {}
 
     if (memberId) {
       query.memberId = memberId

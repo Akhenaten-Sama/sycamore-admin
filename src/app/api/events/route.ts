@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search')
     const upcoming = searchParams.get('upcoming')
 
-    let query: any = {}
+    const query: any = {}
 
     if (search) {
       query.$or = [

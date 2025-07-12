@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const teamId = searchParams.get('teamId')
     const isFirstTimer = searchParams.get('isFirstTimer')
 
-    let query: any = {}
+    const query: any = {}
 
     if (search) {
       query.$or = [

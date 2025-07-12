@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Member } from '@/types'
 
 // Mock database - in a real app, this would be a database
-let members: Member[] = [
+const members: Member[] = [
   {
     id: '1',
     firstName: 'John',

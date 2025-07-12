@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     if (isConnected && !useInMemory) {
       // Use MongoDB
-      let query: any = {}
+      const query: any = {}
 
       if (search) {
         query.$or = [

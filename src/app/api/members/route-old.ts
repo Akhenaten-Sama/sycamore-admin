@@ -3,7 +3,7 @@ import { Member } from '@/types'
 import { dataStore } from '@/lib/data-store'
 
 // Mock database - in a real app, this would be a database
-let members: Member[] = [
+const members: Member[] = [
   {
     id: '1',
     firstName: 'John',
