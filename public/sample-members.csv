@@ -1,0 +1,4 @@
+firstName,lastName,email,phone,address,dateOfBirth,maritalStatus,weddingAnniversary,isFirstTimer,isTeamLead,isAdmin,emergencyContactName,emergencyContactPhone,emergencyContactRelationship
+John,Doe,john.doe@example.com,+1234567890,123 Main St,1990-05-15,single,,true,false,false,Jane Doe,+1234567891,Sister
+Jane,Smith,jane.smith@example.com,+1234567892,456 Oak Ave,1985-08-22,married,2015-06-10,false,true,false,John Smith,+1234567893,Spouse
+Mike,Johnson,mike.johnson@example.com,+1234567894,789 Pine St,1992-12-03,divorced,,false,false,false,Mary Johnson,+1234567895,Mother
