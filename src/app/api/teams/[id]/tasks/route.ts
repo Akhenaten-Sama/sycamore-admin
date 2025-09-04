@@ -35,8 +35,16 @@ export async function GET(
 
     // Only team leaders or admins can access team tasks
     const user = authResult.user
-    const isTeamLeader = team.teamLeadId?.toString() === user.memberId?.toString()
+    console.log('GET tasks - User:', user.email, 'teamLeadId:', team.teamLeadId)
+    
+    // Find the member by email to get the correct _id
+    const member = await Member.findOne({ email: user.email })
+    console.log('GET tasks - Found member:', member?._id, 'for email:', user.email)
+    
+    const isTeamLeader = team.teamLeadId?.toString() === member?._id?.toString()
     const isAdmin = user.role === 'super_admin' || user.role === 'admin'
+    
+    console.log('GET tasks - isTeamLeader:', isTeamLeader, 'isAdmin:', isAdmin)
 
     if (!isTeamLeader && !isAdmin) {
       return NextResponse.json(
@@ -117,8 +125,24 @@ export async function POST(
 
     // Only team leaders can create tasks for their team
     const user = authResult.user
-    const isTeamLeader = team.teamLeadId?.toString() === user.memberId?.toString()
+    console.log('🔍 Task creation - User:', user.email, 'Role:', user.role)
+    console.log('🔍 Task creation - Team:', team.name, 'TeamLeadId:', team.teamLeadId)
+    
+    // Find the member record by email to get the correct member ID
+    const member = await Member.findOne({ email: user.email })
+    if (!member) {
+      return NextResponse.json(
+        { success: false, message: 'Member record not found' },
+        { status: 403 }
+      )
+    }
+    
+    console.log('👤 Task creation - Found member:', member.firstName, member.lastName, 'ID:', member._id)
+    
+    const isTeamLeader = team.teamLeadId?.toString() === member._id?.toString()
     const isAdmin = user.role === 'super_admin' || user.role === 'admin'
+    
+    console.log('🔐 Task creation - isTeamLeader:', isTeamLeader, 'isAdmin:', isAdmin)
 
     if (!isTeamLeader && !isAdmin) {
       return NextResponse.json(
@@ -150,12 +174,11 @@ export async function POST(
       description,
       teamId,
       assigneeId,
-      creatorId: user.memberId,
-      dueDate: dueDate ? new Date(dueDate) : undefined,
+      creatorId: member._id, // Use the member._id as creatorId
+      expectedDeliveryDate: dueDate ? new Date(dueDate) : undefined,
       priority,
-      status: 'pending',
+      status: 'open', // Use valid status value
       isPublic: false, // Team tasks are private to the team
-      createdAt: new Date()
     })
 
     await task.save()

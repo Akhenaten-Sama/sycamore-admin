@@ -416,7 +416,7 @@ export default function NotificationsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total Recipients</p>
-                  <p className="text-2xl font-bold">{members.length}</p>
+                  <p className="text-2xl font-bold text-gray-900">{members.length}</p>
                 </div>
                 <Users className="w-8 h-8 text-gray-400" />
               </div>
@@ -427,7 +427,7 @@ export default function NotificationsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Sent This Month</p>
-                  <p className="text-2xl font-bold">{campaigns.filter(c => c.status === 'sent').length}</p>
+                  <p className="text-2xl font-bold text-gray-900">{campaigns.filter(c => c.status === 'sent').length}</p>
                 </div>
                 <Send className="w-8 h-8 text-gray-400" />
               </div>
@@ -449,7 +449,7 @@ export default function NotificationsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Active Templates</p>
-                  <p className="text-2xl font-bold">{templates.filter(t => t.isActive).length}</p>
+                  <p className="text-2xl font-bold text-gray-900">{templates.filter(t => t.isActive).length}</p>
                 </div>
                 <Bell className="w-8 h-8 text-gray-400" />
               </div>
@@ -516,7 +516,7 @@ export default function NotificationsPage() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-2">
                       {getTypeIcon(template.type)}
-                      <h3 className="font-semibold">{template.name}</h3>
+                      <h3 className="font-semibold text-gray-900">{template.name}</h3>
                     </div>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(template.category)}`}>
                       {template.category}

@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/components/auth-provider'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { Breadcrumbs } from '@/components/breadcrumbs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,7 +17,8 @@ import {
   Users,
   Crown,
   Calendar,
-  Info
+  Info,
+  AlertCircle
 } from 'lucide-react'
 import { Team, Member } from '@/types'
 import { formatDateConsistent, parseApiTeam, parseApiMember } from '@/lib/utils'
@@ -27,7 +30,24 @@ const breadcrumbItems = [
 ]
 
 export default function TeamsPage() {
+  const { user } = useAuth()
+  const router = useRouter()
   const [teams, setTeams] = useState<Team[]>([])
+
+  useEffect(() => {
+    if (!user) {
+      router.push('/login')
+      return
+    }
+
+    // Only admins and super admins can access teams management
+    if (user.role !== 'admin' && user.role !== 'super_admin') {
+      router.push('/dashboard')
+      return
+    }
+
+    loadTeams()
+  }, [user, router])
   const [members, setMembers] = useState<Member[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null)

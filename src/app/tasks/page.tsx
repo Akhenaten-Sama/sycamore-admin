@@ -260,7 +260,7 @@ export default function TasksPage() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="text-center py-8">Loading tasks...</div>
+              <div className="text-center py-8 text-gray-600">Loading tasks...</div>
             ) : (
               <Table>
                 <TableHeader>
@@ -279,7 +279,7 @@ export default function TasksPage() {
                     <TableRow key={task.id}>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{task.title}</div>
+                          <div className="font-medium text-gray-900">{task.title}</div>
                           <div className="text-sm text-gray-500 truncate max-w-xs">
                             {task.description}
                           </div>

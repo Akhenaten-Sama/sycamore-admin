@@ -218,7 +218,7 @@ export default function MediaPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600 capitalize">{type}s</p>
-                      <p className="text-2xl font-bold">{count}</p>
+                      <p className="text-2xl font-bold text-gray-900">{count}</p>
                     </div>
                     <Icon className="w-8 h-8 text-gray-400" />
                   </div>
@@ -276,7 +276,7 @@ export default function MediaPage() {
                     </div>
                   </div>
                   
-                  <h3 className="font-semibold text-lg mb-2 line-clamp-2">{media.title}</h3>
+                  <h3 className="font-semibold text-lg mb-2 line-clamp-2 text-gray-900">{media.title}</h3>
                   <p className="text-gray-600 text-sm mb-3 line-clamp-2">{media.description}</p>
                   
                   <div className="space-y-2 mb-4">

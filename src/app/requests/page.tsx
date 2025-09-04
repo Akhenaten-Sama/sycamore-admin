@@ -372,7 +372,7 @@ export default function RequestFormsPage() {
                             <div className="flex items-center gap-2">
                               <Icon className="w-4 h-4 text-gray-400" />
                               <div>
-                                <div className="font-medium">{form.title}</div>
+                                <div className="font-medium text-gray-900">{form.title}</div>
                                 <div className="text-sm text-gray-500 truncate max-w-xs">
                                   {form.description}
                                 </div>
@@ -679,7 +679,7 @@ export default function RequestFormsPage() {
         {isSubmissionModalOpen && selectedSubmission && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <h2 className="text-xl font-semibold mb-4">Submission Details</h2>
+              <h2 className="text-xl font-semibold mb-4 text-gray-900">Submission Details</h2>
               
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">

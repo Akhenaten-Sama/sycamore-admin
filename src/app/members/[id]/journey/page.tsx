@@ -63,7 +63,7 @@ export default function MemberJourneyPage() {
     return (
       <DashboardLayout>
         <div className="p-6">
-          <div className="text-center py-8">Loading member profile...</div>
+          <div className="text-center py-8 text-gray-600">Loading member profile...</div>
         </div>
       </DashboardLayout>
     )
@@ -141,7 +141,7 @@ export default function MemberJourneyPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Attendance Streak</p>
-                  <p className="text-2xl font-bold">{stats.attendanceStreak}</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.attendanceStreak}</p>
                   <p className="text-xs text-gray-500">weeks</p>
                 </div>
                 <Trophy className="w-8 h-8 text-yellow-500" />
@@ -153,7 +153,7 @@ export default function MemberJourneyPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total Attendance</p>
-                  <p className="text-2xl font-bold">{stats.totalAttendance}</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.totalAttendance}</p>
                   <p className="text-xs text-gray-500">events</p>
                 </div>
                 <Calendar className="w-8 h-8 text-blue-500" />
@@ -165,7 +165,7 @@ export default function MemberJourneyPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total Giving</p>
-                  <p className="text-2xl font-bold">${stats.totalGiving.toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-gray-900">${stats.totalGiving.toLocaleString()}</p>
                   <p className="text-xs text-gray-500">lifetime</p>
                 </div>
                 <DollarSign className="w-8 h-8 text-green-500" />
@@ -177,7 +177,7 @@ export default function MemberJourneyPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Communities</p>
-                  <p className="text-2xl font-bold">{stats.communitiesCount}</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.communitiesCount}</p>
                   <p className="text-xs text-gray-500">active</p>
                 </div>
                 <Users className="w-8 h-8 text-purple-500" />

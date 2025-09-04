@@ -49,24 +49,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      // Verify token with server
-      const response = await fetch('/api/auth/logout', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      if (response.ok) {
-        setUser(JSON.parse(userData))
-      } else {
-        // Token invalid, clear storage and redirect
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
-        if (pathname !== '/login') {
-          router.push('/login')
-        }
-      }
+      // Just use the stored user data without server verification
+      // Server verification will happen when making API calls
+      setUser(JSON.parse(userData))
     } catch (error) {
       console.error('Auth check failed:', error)
       localStorage.removeItem('token')
@@ -83,6 +68,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('token', token)
     localStorage.setItem('user', JSON.stringify(userData))
     setUser(userData)
+    
+    // Force immediate redirect
+    if (userData.role === 'super_admin' || userData.role === 'admin') {
+      window.location.href = '/dashboard'
+    } else if (userData.role === 'team_leader') {
+      window.location.href = '/teams'
+    } else {
+      window.location.href = '/profile'
+    }
   }
 
   const logout = () => {

@@ -246,7 +246,7 @@ export default function TeamDetailPage() {
                 <Users className="w-8 h-8 text-blue-600" />
                 <div>
                   <p className="text-sm text-gray-600">Members</p>
-                  <p className="text-2xl font-bold">{members.length}</p>
+                  <p className="text-2xl font-bold text-gray-900">{members.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -258,7 +258,7 @@ export default function TeamDetailPage() {
                 <CheckSquare className="w-8 h-8 text-green-600" />
                 <div>
                   <p className="text-sm text-gray-600">Total Tasks</p>
-                  <p className="text-2xl font-bold">{tasks.length}</p>
+                  <p className="text-2xl font-bold text-gray-900">{tasks.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -307,7 +307,7 @@ export default function TeamDetailPage() {
                 <div key={member.id} className="flex items-center gap-3 p-3 border rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium">{member.firstName} {member.lastName}</p>
+                      <p className="font-medium text-gray-900">{member.firstName} {member.lastName}</p>
                       {member.isTeamLead && <Crown className="w-4 h-4 text-yellow-500" />}
                     </div>
                     <p className="text-sm text-gray-600">{member.email}</p>
@@ -373,7 +373,7 @@ export default function TeamDetailPage() {
                   <TableRow key={task.id}>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{task.title}</div>
+                        <div className="font-medium text-gray-900">{task.title}</div>
                         <div className="text-sm text-gray-500 truncate max-w-xs">
                           {task.description}
                         </div>

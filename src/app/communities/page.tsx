@@ -81,7 +81,12 @@ export default function CommunitiesPage() {
     try {
       const response = await apiClient.getMembers()
       if (response.success && response.data) {
-        setMembers(Array.isArray(response.data) ? response.data as Member[] : [])
+        console.log('Loaded members:', response.data)
+        const membersArray = Array.isArray(response.data) ? response.data as Member[] : []
+        if (membersArray.length > 0) {
+          console.log('First member structure:', membersArray[0])
+        }
+        setMembers(membersArray)
       }
     } catch (error) {
       console.error('Error loading members:', error)
@@ -118,6 +123,9 @@ export default function CommunitiesPage() {
 
   const handleSaveCommunity = async () => {
     try {
+      console.log('Form data being submitted:', formData)
+      console.log('Leader ID type:', typeof formData.leaderId)
+      
       if (isEditing && selectedCommunity) {
         const response = await apiClient.updateCommunity(selectedCommunity.id, formData)
         if (response.success) {
@@ -201,7 +209,7 @@ export default function CommunitiesPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">{getCommunityTypeLabel(type)}</p>
-                      <p className="text-2xl font-bold">{count}</p>
+                      <p className="text-2xl font-bold text-gray-900">{count}</p>
                     </div>
                     <Icon className="w-8 h-8 text-gray-400" />
                   </div>
@@ -251,7 +259,7 @@ export default function CommunitiesPage() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="text-center py-8">Loading communities...</div>
+              <div className="text-center py-8 text-gray-600">Loading communities...</div>
             ) : (
               <Table>
                 <TableHeader>
@@ -275,7 +283,7 @@ export default function CommunitiesPage() {
                           <div className="flex items-center gap-2">
                             <Icon className="w-4 h-4 text-gray-400" />
                             <div>
-                              <div className="font-medium">{community.name}</div>
+                              <div className="font-medium text-gray-900">{community.name}</div>
                               <div className="text-sm text-gray-500 truncate max-w-xs">
                                 {community.description}
                               </div>

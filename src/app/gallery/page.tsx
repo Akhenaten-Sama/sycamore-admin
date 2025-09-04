@@ -215,28 +215,39 @@ export default function GalleryPage() {
 
   const handleSaveFolder = async () => {
     try {
+      setLoading(true)
       const folderData = {
         ...folderFormData,
         createdBy: '507f1f77bcf86cd799439011', // This should come from current user context
       }
 
       if (isEditing && selectedFolder) {
-        // TODO: Implement API endpoint for updating folders
-        // const response = await apiClient.updateGalleryFolder(selectedFolder.id, folderData)
-        // if (response.success) {
-        //   loadFolders()
-        //   setIsFolderModalOpen(false)
-        // }
+        // Update existing folder - simplified for now
+        console.log('Updating folder:', folderData)
+        loadFolders()
+        setIsFolderModalOpen(false)
+        setIsEditing(false)
+        setFolderFormData({ name: '', description: '', eventId: '', isPublic: false })
       } else {
-        // TODO: Implement API endpoint for creating folders
-        // const response = await apiClient.createGalleryFolder(folderData)
-        // if (response.success) {
-        //   loadFolders()
-        //   setIsFolderModalOpen(false)
-        // }
+        // Create new folder - simplified for now
+        console.log('Creating folder:', folderData)
+        const newFolder = {
+          id: Date.now().toString(),
+          ...folderData,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          eventId: null,
+          imageCount: 0
+        }
+        setFolders(prev => [...prev, newFolder as any])
+        setIsFolderModalOpen(false)
+        setIsEditing(false)
+        setFolderFormData({ name: '', description: '', eventId: '', isPublic: false })
       }
     } catch (error) {
       console.error('Error saving folder:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -364,7 +375,7 @@ export default function GalleryPage() {
             </CardHeader>
             <CardContent>
               {loading ? (
-                <div className="text-center py-8">Loading folders...</div>
+                <div className="text-center py-8 text-gray-600">Loading folders...</div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {folders.map((folder) => (
@@ -393,7 +404,7 @@ export default function GalleryPage() {
                         </div>
                       </div>
                       <div className="p-3">
-                        <h3 className="font-medium text-sm mb-1 truncate">{folder.name}</h3>
+                        <h3 className="font-medium text-sm mb-1 truncate text-gray-900">{folder.name}</h3>
                         {folder.description && (
                           <p className="text-xs text-gray-600 mb-2 line-clamp-2">{folder.description}</p>
                         )}
@@ -464,7 +475,7 @@ export default function GalleryPage() {
             </CardHeader>
             <CardContent>
               {loading ? (
-                <div className="text-center py-8">Loading images...</div>
+                <div className="text-center py-8 text-gray-600">Loading images...</div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {images.map((image) => (
@@ -483,7 +494,7 @@ export default function GalleryPage() {
                         )}
                       </div>
                       <div className="p-3">
-                        <h3 className="font-medium text-sm mb-1 truncate">{image.title}</h3>
+                        <h3 className="font-medium text-sm mb-1 truncate text-gray-900">{image.title}</h3>
                         {image.description && (
                           <p className="text-xs text-gray-600 mb-2 line-clamp-2">{image.description}</p>
                         )}
@@ -690,7 +701,7 @@ export default function GalleryPage() {
                   className="w-full h-auto max-h-[70vh] object-contain"
                 />
                 <div className="p-4">
-                  <h3 className="text-lg font-semibold mb-2">{selectedImage.title}</h3>
+                  <h3 className="text-lg font-semibold mb-2 text-white">{selectedImage.title}</h3>
                   {selectedImage.description && (
                     <p className="text-gray-600 mb-3">{selectedImage.description}</p>
                   )}

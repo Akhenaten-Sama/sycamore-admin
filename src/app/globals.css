@@ -24,3 +24,17 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Ensure text visibility improvements */
+input, textarea, select {
+  color: #1f2937 !important;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #9ca3af !important;
+}
+
+/* Ensure all text has minimum contrast */
+.text-default {
+  color: #1f2937;
+}

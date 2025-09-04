@@ -13,7 +13,8 @@ import {
   UserCheck,
   Heart,
   Activity,
-  Clock
+  Clock,
+  Building
 } from 'lucide-react'
 import { apiClient } from '@/lib/api-client'
 import { formatDateConsistent, getCurrentDate, parseApiMember, parseApiEvent, parseApiBlogPost, parseApiAttendanceRecord } from '@/lib/utils'
@@ -30,7 +31,8 @@ export default function Dashboard() {
     newMembersThisMonth: 0,
     upcomingEvents: 0,
     totalBlogPosts: 0,
-    recentAttendance: 0
+    recentAttendance: 0,
+    totalCommunities: 0
   })
   const [recentMembers, setRecentMembers] = useState<Member[]>([])
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([])
@@ -46,11 +48,12 @@ export default function Dashboard() {
       setLoading(true)
       
       // Load all data in parallel
-      const [membersRes, eventsRes, blogRes, attendanceRes] = await Promise.all([
+      const [membersRes, eventsRes, blogRes, attendanceRes, communitiesRes] = await Promise.all([
         apiClient.getMembers(),
         apiClient.getEvents(),
         apiClient.getBlogPosts(),
-        apiClient.getAttendanceRecords()
+        apiClient.getAttendanceRecords(),
+        apiClient.getCommunities()
       ])
 
       const currentDate = getCurrentDate()
@@ -120,6 +123,16 @@ export default function Dashboard() {
         }))
       }
 
+      // Process communities data
+      if (communitiesRes.success && communitiesRes.data) {
+        const communities = Array.isArray(communitiesRes.data) ? communitiesRes.data : []
+        
+        setStats(prev => ({
+          ...prev,
+          totalCommunities: communities.length
+        }))
+      }
+
     } catch (error) {
       console.error('Failed to load dashboard data:', error)
     } finally {
@@ -151,6 +164,13 @@ export default function Dashboard() {
       value: stats.totalMembers.toString(),
       icon: Users,
       change: `+${stats.newMembersThisMonth}`,
+      changeType: 'positive' as const,
+    },
+    {
+      name: 'Communities',
+      value: stats.totalCommunities.toString(),
+      icon: Building,
+      change: `+${stats.totalCommunities}`,
       changeType: 'positive' as const,
     },
     {

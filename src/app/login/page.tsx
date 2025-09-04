@@ -33,6 +33,8 @@ export default function LoginPage() {
     setError('')
 
     try {
+      console.log('🔄 Attempting login with:', formData.email)
+      
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -42,26 +44,19 @@ export default function LoginPage() {
       })
 
       const data = await response.json()
+      console.log('📤 Login response:', { ok: response.ok, status: response.status, data })
 
       if (response.ok) {
-        // Use AuthContext login method
-        login(data.token, data.user)
+        console.log('✅ Login successful, calling AuthContext login...')
         
-        // Redirect based on user role
-        if (data.user.role === 'super_admin') {
-          router.push('/dashboard')
-        } else if (data.user.role === 'admin') {
-          router.push('/dashboard')
-        } else if (data.user.role === 'team_leader') {
-          router.push('/teams') // Team leaders go to their team management
-        } else {
-          router.push('/profile') // Regular members go to profile
-        }
+        // Use AuthContext login method (it will handle redirect)
+        login(data.token, data.user)
       } else {
+        console.log('❌ Login failed:', data.message)
         setError(data.message || 'Login failed')
       }
     } catch (error) {
-      console.error('Login error:', error)
+      console.error('💥 Login error:', error)
       setError('An error occurred during login')
     } finally {
       setLoading(false)

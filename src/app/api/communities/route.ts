@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
     await connectDB()
     
     const body = await request.json()
+    console.log('Community creation request body:', body)
     
     // Validate required fields
     if (!body.name || !body.description || !body.type || !body.leaderId) {
@@ -65,6 +66,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    console.log('leaderId received:', body.leaderId, 'type:', typeof body.leaderId)
 
     const newCommunity = new Community({
       name: body.name,

@@ -295,7 +295,7 @@ export default function DiscipleshipCoursesPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total Courses</p>
-                  <p className="text-2xl font-bold">{courses.length}</p>
+                  <p className="text-2xl font-bold text-gray-900">{courses.length}</p>
                 </div>
                 <BookOpen className="w-8 h-8 text-blue-500" />
               </div>
@@ -306,7 +306,7 @@ export default function DiscipleshipCoursesPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Active Courses</p>
-                  <p className="text-2xl font-bold">{courses.filter(c => c.isActive).length}</p>
+                  <p className="text-2xl font-bold text-gray-900">{courses.filter(c => c.isActive).length}</p>
                 </div>
                 <GraduationCap className="w-8 h-8 text-green-500" />
               </div>
@@ -317,7 +317,7 @@ export default function DiscipleshipCoursesPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total Enrollments</p>
-                  <p className="text-2xl font-bold">{enrollments.length}</p>
+                  <p className="text-2xl font-bold text-gray-900">{enrollments.length}</p>
                 </div>
                 <User className="w-8 h-8 text-purple-500" />
               </div>
@@ -328,7 +328,7 @@ export default function DiscipleshipCoursesPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Completed</p>
-                  <p className="text-2xl font-bold">{enrollments.filter(e => e.status === 'completed').length}</p>
+                  <p className="text-2xl font-bold text-gray-900">{enrollments.filter(e => e.status === 'completed').length}</p>
                 </div>
                 <Award className="w-8 h-8 text-yellow-500" />
               </div>
@@ -429,7 +429,7 @@ export default function DiscipleshipCoursesPage() {
                         </span>
                       </div>
                       
-                      <h3 className="font-semibold text-lg mb-2">{course.title}</h3>
+                      <h3 className="font-semibold text-lg mb-2 text-gray-900">{course.title}</h3>
                       <p className="text-gray-600 text-sm mb-4 line-clamp-2">{course.description}</p>
                       
                       <div className="space-y-2 mb-4">
@@ -513,7 +513,7 @@ export default function DiscipleshipCoursesPage() {
                     <div key={enrollment.id} className="p-4 border rounded-lg">
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <h4 className="font-medium">{course?.title || 'Unknown Course'}</h4>
+                          <h4 className="font-medium text-gray-900">{course?.title || 'Unknown Course'}</h4>
                           <p className="text-sm text-gray-600">Member ID: {enrollment.memberId}</p>
                         </div>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(enrollment.status)}`}>

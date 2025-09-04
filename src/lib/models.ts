@@ -20,6 +20,7 @@ export interface IUser extends Document {
   lastLogin?: Date
   loginAttempts: number
   lockoutUntil?: Date
+  mustChangePassword?: boolean
   memberId?: mongoose.Types.ObjectId // Link to member profile if they are also a member
   createdBy?: mongoose.Types.ObjectId
   teamIds?: mongoose.Types.ObjectId[] // For team leaders, which teams they can manage
@@ -50,6 +51,7 @@ const userSchema = new Schema<IUser>({
   lastLogin: { type: Date },
   loginAttempts: { type: Number, default: 0 },
   lockoutUntil: { type: Date },
+  mustChangePassword: { type: Boolean, default: false },
   memberId: { type: Schema.Types.ObjectId, ref: 'Member' },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   teamIds: [{ type: Schema.Types.ObjectId, ref: 'Team' }]
@@ -522,6 +524,59 @@ const requestSubmissionSchema = new Schema<IRequestSubmission>({
   timestamps: true
 })
 
+// Form Management for shareable forms
+export interface IForm extends Document {
+  title: string
+  description: string
+  fields: Array<{
+    id: string
+    label: string
+    type: 'text' | 'textarea' | 'email' | 'phone' | 'date' | 'select' | 'checkbox' | 'file'
+    required: boolean
+    options?: string[]
+    placeholder?: string
+  }>
+  isActive: boolean
+  submissions: Array<{
+    id: string
+    data: any
+    submittedAt: Date
+    submitterEmail?: string
+    submitterName?: string
+  }>
+  createdBy: mongoose.Types.ObjectId
+  createdAt: Date
+  updatedAt: Date
+}
+
+const formSchema = new Schema<IForm>({
+  title: { type: String, required: true },
+  description: { type: String },
+  fields: [{
+    id: { type: String, required: true },
+    label: { type: String, required: true },
+    type: { 
+      type: String, 
+      enum: ['text', 'textarea', 'email', 'phone', 'date', 'select', 'checkbox', 'file'], 
+      required: true 
+    },
+    required: { type: Boolean, default: false },
+    options: [{ type: String }],
+    placeholder: { type: String }
+  }],
+  isActive: { type: Boolean, default: true },
+  submissions: [{
+    id: { type: String, required: true },
+    data: { type: Schema.Types.Mixed, required: true },
+    submittedAt: { type: Date, default: Date.now },
+    submitterEmail: { type: String },
+    submitterName: { type: String }
+  }],
+  createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
+}, {
+  timestamps: true
+})
+
 // Export models
 export const Role: Model<IRole> = mongoose.models.Role || mongoose.model<IRole>('Role', roleSchema)
 export const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', userSchema)
@@ -541,3 +596,4 @@ export const UserActivity: Model<IUserActivity> = mongoose.models.UserActivity |
 export const Giving: Model<IGiving> = mongoose.models.Giving || mongoose.model<IGiving>('Giving', givingSchema)
 export const RequestForm: Model<IRequestForm> = mongoose.models.RequestForm || mongoose.model<IRequestForm>('RequestForm', requestFormSchema)
 export const RequestSubmission: Model<IRequestSubmission> = mongoose.models.RequestSubmission || mongoose.model<IRequestSubmission>('RequestSubmission', requestSubmissionSchema)
+export const Form: Model<IForm> = mongoose.models.Form || mongoose.model<IForm>('Form', formSchema)

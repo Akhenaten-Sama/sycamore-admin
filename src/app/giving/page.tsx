@@ -238,7 +238,7 @@ export default function GivingPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total Giving</p>
-                  <p className="text-2xl font-bold">${stats.totalAmount.toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-gray-900">${stats.totalAmount.toLocaleString()}</p>
                 </div>
                 <DollarSign className="w-8 h-8 text-green-500" />
               </div>
@@ -249,7 +249,7 @@ export default function GivingPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">This Month</p>
-                  <p className="text-2xl font-bold">${stats.monthlyTotal.toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-gray-900">${stats.monthlyTotal.toLocaleString()}</p>
                 </div>
                 <Calendar className="w-8 h-8 text-blue-500" />
               </div>
@@ -260,7 +260,7 @@ export default function GivingPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total Records</p>
-                  <p className="text-2xl font-bold">{stats.totalRecords}</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.totalRecords}</p>
                 </div>
                 <TrendingUp className="w-8 h-8 text-purple-500" />
               </div>
@@ -271,7 +271,7 @@ export default function GivingPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Average Giving</p>
-                  <p className="text-2xl font-bold">${stats.averageGiving.toFixed(0)}</p>
+                  <p className="text-2xl font-bold text-gray-900">${stats.averageGiving.toFixed(0)}</p>
                 </div>
                 <Heart className="w-8 h-8 text-red-500" />
               </div>
@@ -362,7 +362,7 @@ export default function GivingPage() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="text-center py-8">Loading giving records...</div>
+              <div className="text-center py-8 text-gray-600">Loading giving records...</div>
             ) : (
               <Table>
                 <TableHeader>

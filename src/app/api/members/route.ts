@@ -33,10 +33,16 @@ export async function GET(request: NextRequest) {
       .populate('teamId', 'name')
       .sort({ createdAt: -1 })
 
+    // Transform _id to id for frontend compatibility
+    const transformedMembers = members.map(member => ({
+      ...member.toObject(),
+      id: member._id.toString()
+    }))
+
     return NextResponse.json({
       success: true,
-      data: members,
-      total: members.length
+      data: transformedMembers,
+      total: transformedMembers.length
     })
   } catch (error) {
     console.error('Error fetching members:', error)

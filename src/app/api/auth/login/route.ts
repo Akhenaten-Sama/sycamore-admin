@@ -8,6 +8,11 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🌍 Environment check:')
+    console.log('NODE_ENV:', process.env.NODE_ENV)
+    console.log('MONGODB_URI available:', !!process.env.MONGODB_URI)
+    console.log('JWT_SECRET available:', !!process.env.JWT_SECRET)
+    
     await connectDB()
     
     const { email, password } = await request.json()
