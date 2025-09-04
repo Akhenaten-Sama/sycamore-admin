@@ -16,6 +16,11 @@ export const mockMembers: Member[] = [
     dateOfBirth: new Date('1990-05-15'),
     address: '123 Main St, City',
     maritalStatus: 'single',
+    communityIds: ['1'],
+    attendanceStreak: 4,
+    totalAttendance: 45,
+    totalGiving: 2500,
+    lastActivityDate: new Date('2024-12-20'),
   },
   {
     id: '2',
@@ -31,6 +36,11 @@ export const mockMembers: Member[] = [
     dateOfBirth: new Date('1985-08-22'),
     weddingAnniversary: new Date('2015-06-10'),
     maritalStatus: 'married',
+    communityIds: ['1', '2'],
+    attendanceStreak: 8,
+    totalAttendance: 78,
+    totalGiving: 5400,
+    lastActivityDate: new Date('2024-12-21'),
   },
   {
     id: '3',
@@ -44,6 +54,11 @@ export const mockMembers: Member[] = [
     isAdmin: false,
     dateOfBirth: new Date('1992-12-03'),
     maritalStatus: 'divorced',
+    communityIds: [],
+    attendanceStreak: 2,
+    totalAttendance: 8,
+    totalGiving: 300,
+    lastActivityDate: new Date('2024-12-18'),
   },
   {
     id: '4',
@@ -58,6 +73,11 @@ export const mockMembers: Member[] = [
     isAdmin: true,
     dateOfBirth: new Date('1988-03-17'),
     maritalStatus: 'single',
+    communityIds: ['2', '3'],
+    attendanceStreak: 12,
+    totalAttendance: 156,
+    totalGiving: 8900,
+    lastActivityDate: new Date('2024-12-21'),
   },
 ]
 

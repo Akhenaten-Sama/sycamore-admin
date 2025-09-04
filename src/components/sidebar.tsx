@@ -14,17 +14,28 @@ import {
   User,
   ChevronLeft,
   ChevronRight,
+  CheckSquare,
+  Image,
+  DollarSign,
+  Globe,
+  Building,
+  ClipboardList,
 } from 'lucide-react'
 import { useState } from 'react'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Members', href: '/members', icon: Users },
-  { name: 'Events', href: '/events', icon: Calendar },
-  { name: 'Blog', href: '/blog', icon: FileText },
-  { name: 'Anniversaries', href: '/anniversaries', icon: Heart },
-  { name: 'Attendance', href: '/attendance', icon: UserCheck },
   { name: 'Teams', href: '/teams', icon: Users },
+  { name: 'Communities', href: '/communities', icon: Building },
+  { name: 'Tasks', href: '/tasks', icon: CheckSquare },
+  { name: 'Events', href: '/events', icon: Calendar },
+  { name: 'Attendance', href: '/attendance', icon: UserCheck },
+  { name: 'Gallery', href: '/gallery', icon: Image },
+  { name: 'Blog', href: '/blog', icon: FileText },
+  { name: 'Giving', href: '/giving', icon: DollarSign },
+  { name: 'Requests', href: '/requests', icon: ClipboardList },
+  { name: 'Anniversaries', href: '/anniversaries', icon: Heart },
   { name: 'Settings', href: '/settings', icon: Settings },
   { name: 'Profile', href: '/profile', icon: User },
 ]

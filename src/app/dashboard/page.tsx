@@ -255,7 +255,10 @@ export default function Dashboard() {
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p 
+                        className="text-sm font-medium text-gray-900 hover:text-blue-600 cursor-pointer transition-colors"
+                        onClick={() => router.push(`/members/${member.id}/journey`)}
+                      >
                         {member.firstName} {member.lastName}
                       </p>
                       <p className="text-sm text-gray-500">
@@ -366,7 +369,10 @@ export default function Dashboard() {
                       <Heart className="h-5 w-5 text-pink-700" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p 
+                        className="text-sm font-medium text-gray-900 hover:text-blue-600 cursor-pointer transition-colors"
+                        onClick={() => router.push(`/members/${member.id}/journey`)}
+                      >
                         {member.firstName} {member.lastName}
                       </p>
                       <p className="text-sm text-gray-500">

@@ -128,7 +128,23 @@ export async function POST(request: NextRequest) {
         dateOfBirth: body.dateOfBirth ? new Date(body.dateOfBirth) : undefined,
         weddingAnniversary: body.weddingAnniversary ? new Date(body.weddingAnniversary) : undefined,
         maritalStatus: body.maritalStatus || 'single',
-        emergencyContact: body.emergencyContact
+        emergencyContact: body.emergencyContact,
+        communityIds: body.communityIds || [],
+        attendanceStreak: 0,
+        totalAttendance: 0,
+        totalGiving: 0,
+        lastActivityDate: new Date(),
+        skills: body.skills || [],
+        interests: body.interests || [],
+        availability: body.availability || {
+          monday: false,
+          tuesday: false,
+          wednesday: false,
+          thursday: false,
+          friday: false,
+          saturday: false,
+          sunday: false
+        }
       })
 
       const savedMember = await newMember.save()
@@ -165,6 +181,22 @@ export async function POST(request: NextRequest) {
         weddingAnniversary: body.weddingAnniversary ? new Date(body.weddingAnniversary) : undefined,
         maritalStatus: body.maritalStatus || 'single',
         emergencyContact: body.emergencyContact,
+        communityIds: body.communityIds || [],
+        attendanceStreak: 0,
+        totalAttendance: 0,
+        totalGiving: 0,
+        lastActivityDate: new Date(),
+        skills: body.skills || [],
+        interests: body.interests || [],
+        availability: body.availability || {
+          monday: false,
+          tuesday: false,
+          wednesday: false,
+          thursday: false,
+          friday: false,
+          saturday: false,
+          sunday: false
+        }
       }
 
       dataStore.members.push(newMember)

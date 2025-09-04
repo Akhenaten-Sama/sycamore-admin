@@ -245,6 +245,281 @@ export class ApiClient {
       body: JSON.stringify(attendance),
     })
   }
+
+  // Tasks API
+  async getTasks(params?: { teamId?: string; status?: string; assigneeId?: string; isPublic?: boolean; search?: string }) {
+    const searchParams = new URLSearchParams()
+    if (params?.teamId) searchParams.append('teamId', params.teamId)
+    if (params?.status) searchParams.append('status', params.status)
+    if (params?.assigneeId) searchParams.append('assigneeId', params.assigneeId)
+    if (params?.isPublic) searchParams.append('isPublic', 'true')
+    if (params?.search) searchParams.append('search', params.search)
+
+    const queryString = searchParams.toString()
+    return this.request(`/tasks${queryString ? `?${queryString}` : ''}`)
+  }
+
+  async getTask(id: string) {
+    return this.request(`/tasks/${id}`)
+  }
+
+  async createTask(task: any) {
+    return this.request('/tasks', {
+      method: 'POST',
+      body: JSON.stringify(task),
+    })
+  }
+
+  async updateTask(id: string, task: any) {
+    return this.request(`/tasks/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(task),
+    })
+  }
+
+  async pickupTask(id: string, memberId: string) {
+    return this.request(`/tasks/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'pickup', memberId }),
+    })
+  }
+
+  async completeTask(id: string, memberId: string) {
+    return this.request(`/tasks/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'complete', memberId }),
+    })
+  }
+
+  async deleteTask(id: string) {
+    return this.request(`/tasks/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Gallery API
+  async getGalleryImages(params?: { search?: string; eventId?: string; isPublic?: boolean; uploadedBy?: string; tags?: string }) {
+    const searchParams = new URLSearchParams()
+    if (params?.search) searchParams.append('search', params.search)
+    if (params?.eventId) searchParams.append('eventId', params.eventId)
+    if (params?.isPublic) searchParams.append('isPublic', 'true')
+    if (params?.uploadedBy) searchParams.append('uploadedBy', params.uploadedBy)
+    if (params?.tags) searchParams.append('tags', params.tags)
+
+    const queryString = searchParams.toString()
+    return this.request(`/gallery${queryString ? `?${queryString}` : ''}`)
+  }
+
+  async getGalleryImage(id: string) {
+    return this.request(`/gallery/${id}`)
+  }
+
+  async uploadGalleryImage(image: any) {
+    return this.request('/gallery', {
+      method: 'POST',
+      body: JSON.stringify(image),
+    })
+  }
+
+  async updateGalleryImage(id: string, image: any) {
+    return this.request(`/gallery/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(image),
+    })
+  }
+
+  async deleteGalleryImage(id: string) {
+    return this.request(`/gallery/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Comments API
+  async getComments(params?: { targetType?: string; targetId?: string; authorId?: string; isApproved?: boolean }) {
+    const searchParams = new URLSearchParams()
+    if (params?.targetType) searchParams.append('targetType', params.targetType)
+    if (params?.targetId) searchParams.append('targetId', params.targetId)
+    if (params?.authorId) searchParams.append('authorId', params.authorId)
+    if (params?.isApproved !== undefined) searchParams.append('isApproved', params.isApproved.toString())
+
+    const queryString = searchParams.toString()
+    return this.request(`/comments${queryString ? `?${queryString}` : ''}`)
+  }
+
+  async createComment(comment: any) {
+    return this.request('/comments', {
+      method: 'POST',
+      body: JSON.stringify(comment),
+    })
+  }
+
+  async updateComment(id: string, comment: any) {
+    return this.request(`/comments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(comment),
+    })
+  }
+
+  async deleteComment(id: string) {
+    return this.request(`/comments/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Communities API
+  async getCommunities(params?: { search?: string; type?: string; leaderId?: string; isActive?: boolean }) {
+    const searchParams = new URLSearchParams()
+    if (params?.search) searchParams.append('search', params.search)
+    if (params?.type) searchParams.append('type', params.type)
+    if (params?.leaderId) searchParams.append('leaderId', params.leaderId)
+    if (params?.isActive !== undefined) searchParams.append('isActive', params.isActive.toString())
+
+    const queryString = searchParams.toString()
+    return this.request(`/communities${queryString ? `?${queryString}` : ''}`)
+  }
+
+  async getCommunity(id: string) {
+    return this.request(`/communities/${id}`)
+  }
+
+  async createCommunity(community: any) {
+    return this.request('/communities', {
+      method: 'POST',
+      body: JSON.stringify(community),
+    })
+  }
+
+  async updateCommunity(id: string, community: any) {
+    return this.request(`/communities/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(community),
+    })
+  }
+
+  async deleteCommunity(id: string) {
+    return this.request(`/communities/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Giving API
+  async getGivingRecords(params?: { memberId?: string; category?: string; method?: string; startDate?: string; endDate?: string; isRecurring?: boolean }) {
+    const searchParams = new URLSearchParams()
+    if (params?.memberId) searchParams.append('memberId', params.memberId)
+    if (params?.category) searchParams.append('category', params.category)
+    if (params?.method) searchParams.append('method', params.method)
+    if (params?.startDate) searchParams.append('startDate', params.startDate)
+    if (params?.endDate) searchParams.append('endDate', params.endDate)
+    if (params?.isRecurring !== undefined) searchParams.append('isRecurring', params.isRecurring.toString())
+
+    const queryString = searchParams.toString()
+    return this.request(`/giving${queryString ? `?${queryString}` : ''}`)
+  }
+
+  async createGivingRecord(giving: any) {
+    return this.request('/giving', {
+      method: 'POST',
+      body: JSON.stringify(giving),
+    })
+  }
+
+  async updateGivingRecord(id: string, giving: any) {
+    return this.request(`/giving/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(giving),
+    })
+  }
+
+  async deleteGivingRecord(id: string) {
+    return this.request(`/giving/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Request Forms API
+  async getRequestForms(params?: { type?: string; isActive?: boolean; createdBy?: string }) {
+    const searchParams = new URLSearchParams()
+    if (params?.type) searchParams.append('type', params.type)
+    if (params?.isActive !== undefined) searchParams.append('isActive', params.isActive.toString())
+    if (params?.createdBy) searchParams.append('createdBy', params.createdBy)
+
+    const queryString = searchParams.toString()
+    return this.request(`/request-forms${queryString ? `?${queryString}` : ''}`)
+  }
+
+  async createRequestForm(form: any) {
+    return this.request('/request-forms', {
+      method: 'POST',
+      body: JSON.stringify(form),
+    })
+  }
+
+  async getRequestForm(id: string) {
+    return this.request(`/request-forms/${id}`)
+  }
+
+  async updateRequestForm(id: string, form: any) {
+    return this.request(`/request-forms/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(form),
+    })
+  }
+
+  async deleteRequestForm(id: string) {
+    return this.request(`/request-forms/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Request Submissions API
+  async getRequestSubmissions(params?: { formId?: string; submitterId?: string; status?: string }) {
+    const searchParams = new URLSearchParams()
+    if (params?.formId) searchParams.append('formId', params.formId)
+    if (params?.submitterId) searchParams.append('submitterId', params.submitterId)
+    if (params?.status) searchParams.append('status', params.status)
+
+    const queryString = searchParams.toString()
+    return this.request(`/request-submissions${queryString ? `?${queryString}` : ''}`)
+  }
+
+  async submitRequest(submission: any) {
+    return this.request('/request-submissions', {
+      method: 'POST',
+      body: JSON.stringify(submission),
+    })
+  }
+
+  async submitRequestForm(submission: any) {
+    return this.request('/request-submissions', {
+      method: 'POST',
+      body: JSON.stringify(submission),
+    })
+  }
+
+  // User Activities API
+  async getUserActivities(params?: { userId?: string; activityType?: string; startDate?: string; endDate?: string; limit?: number }) {
+    const searchParams = new URLSearchParams()
+    if (params?.userId) searchParams.append('userId', params.userId)
+    if (params?.activityType) searchParams.append('activityType', params.activityType)
+    if (params?.startDate) searchParams.append('startDate', params.startDate)
+    if (params?.endDate) searchParams.append('endDate', params.endDate)
+    if (params?.limit) searchParams.append('limit', params.limit.toString())
+
+    const queryString = searchParams.toString()
+    return this.request(`/user-activities${queryString ? `?${queryString}` : ''}`)
+  }
+
+  async logUserActivity(activity: any) {
+    return this.request('/user-activities', {
+      method: 'POST',
+      body: JSON.stringify(activity),
+    })
+  }
+
+  // Member Journey API
+  async getMemberJourney(memberId: string) {
+    return this.request(`/members/${memberId}/journey`)
+  }
 }
 
 export const apiClient = new ApiClient()

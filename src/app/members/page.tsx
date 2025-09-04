@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { Breadcrumbs } from '@/components/breadcrumbs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -31,6 +32,7 @@ const breadcrumbItems = [
 ]
 
 export default function MembersPage() {
+  const router = useRouter()
   const [members, setMembers] = useState<Member[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -344,7 +346,10 @@ export default function MembersPage() {
                           </span>
                         </div>
                         <div>
-                          <div className="font-medium text-gray-900">
+                          <div 
+                            className="font-medium text-gray-900 hover:text-blue-600 cursor-pointer transition-colors"
+                            onClick={() => router.push(`/members/${member.id}/journey`)}
+                          >
                             {member.firstName} {member.lastName}
                           </div>
                           <div className="flex items-center space-x-2 text-sm text-gray-500">

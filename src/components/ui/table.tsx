@@ -47,9 +47,13 @@ export function TableHead({ children, className }: TableProps) {
   )
 }
 
-export function TableCell({ children, className }: TableProps) {
+interface TableCellProps extends TableProps {
+  colSpan?: number
+}
+
+export function TableCell({ children, className, colSpan }: TableCellProps) {
   return (
-    <td className={cn('px-6 py-4 whitespace-nowrap text-sm text-gray-900', className)}>
+    <td className={cn('px-6 py-4 whitespace-nowrap text-sm text-gray-900', className)} colSpan={colSpan}>
       {children}
     </td>
   )

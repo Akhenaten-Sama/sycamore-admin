@@ -156,3 +156,12 @@ export function parseApiTeam(team: any): Team {
     updatedAt: team.updatedAt ? parseApiDate(team.updatedAt) : new Date()
   }
 }
+
+export function parseApiRequestForm(form: any): any {
+  return {
+    ...form,
+    id: form._id || form.id,
+    createdAt: form.createdAt ? parseApiDate(form.createdAt) : new Date(),
+    updatedAt: form.updatedAt ? parseApiDate(form.updatedAt) : new Date()
+  }
+}
