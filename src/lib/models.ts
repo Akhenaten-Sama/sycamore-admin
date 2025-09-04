@@ -1,5 +1,62 @@
 import mongoose, { Document, Schema, Model } from 'mongoose'
 
+// User Role and Permission System
+export interface IRole extends Document {
+  name: string
+  description: string
+  permissions: string[]
+  isSystem: boolean // true for built-in roles like super_admin, admin, team_leader
+}
+
+export interface IUser extends Document {
+  email: string
+  password: string
+  firstName: string
+  lastName: string
+  avatar?: string
+  isActive: boolean
+  role: 'super_admin' | 'admin' | 'team_leader' | 'member'
+  permissions: string[]
+  lastLogin?: Date
+  loginAttempts: number
+  lockoutUntil?: Date
+  memberId?: mongoose.Types.ObjectId // Link to member profile if they are also a member
+  createdBy?: mongoose.Types.ObjectId
+  teamIds?: mongoose.Types.ObjectId[] // For team leaders, which teams they can manage
+}
+
+const roleSchema = new Schema<IRole>({
+  name: { type: String, required: true, unique: true },
+  description: { type: String, required: true },
+  permissions: [{ type: String }],
+  isSystem: { type: Boolean, default: false }
+}, {
+  timestamps: true
+})
+
+const userSchema = new Schema<IUser>({
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  firstName: { type: String, required: true },
+  lastName: { type: String, required: true },
+  avatar: { type: String },
+  isActive: { type: Boolean, default: true },
+  role: { 
+    type: String, 
+    enum: ['super_admin', 'admin', 'team_leader', 'member'], 
+    default: 'member' 
+  },
+  permissions: [{ type: String }],
+  lastLogin: { type: Date },
+  loginAttempts: { type: Number, default: 0 },
+  lockoutUntil: { type: Date },
+  memberId: { type: Schema.Types.ObjectId, ref: 'Member' },
+  createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  teamIds: [{ type: Schema.Types.ObjectId, ref: 'Team' }]
+}, {
+  timestamps: true
+})
+
 // Member Schema
 export interface IMember extends Document {
   firstName: string
@@ -38,6 +95,7 @@ export interface IMember extends Document {
     saturday: boolean
     sunday: boolean
   }
+  userId?: mongoose.Types.ObjectId // Link to user account if they have login access
 }
 
 const memberSchema = new Schema<IMember>({
@@ -80,7 +138,8 @@ const memberSchema = new Schema<IMember>({
     friday: { type: Boolean, default: false },
     saturday: { type: Boolean, default: false },
     sunday: { type: Boolean, default: false }
-  }
+  },
+  userId: { type: Schema.Types.ObjectId, ref: 'User' }
 }, {
   timestamps: true
 })
@@ -464,6 +523,8 @@ const requestSubmissionSchema = new Schema<IRequestSubmission>({
 })
 
 // Export models
+export const Role: Model<IRole> = mongoose.models.Role || mongoose.model<IRole>('Role', roleSchema)
+export const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', userSchema)
 export const Member: Model<IMember> = mongoose.models.Member || mongoose.model<IMember>('Member', memberSchema)
 export const Team: Model<ITeam> = mongoose.models.Team || mongoose.model<ITeam>('Team', teamSchema)
 export const Event: Model<IEvent> = mongoose.models.Event || mongoose.model<IEvent>('Event', eventSchema)
