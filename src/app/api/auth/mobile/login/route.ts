@@ -6,6 +6,25 @@ import { User, Member } from '@/lib/models'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
+// CORS headers for mobile app
+const corsHeaders = {
+  'Access-Control-Allow-Origin': 'http://localhost:5173',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Credentials': 'true',
+}
+
+function createCorsResponse(data: any, status: number) {
+  return NextResponse.json(data, { status, headers: corsHeaders })
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return new Response(null, {
+    status: 200,
+    headers: corsHeaders,
+  })
+}
+
 export async function POST(request: NextRequest) {
   try {
     await connectDB()
@@ -15,9 +34,9 @@ export async function POST(request: NextRequest) {
     console.log('📱 Mobile login attempt:', { email })
 
     if (!email || !password) {
-      return NextResponse.json(
+      return createCorsResponse(
         { message: 'Email and password are required' },
-        { status: 400 }
+        400
       )
     }
 
@@ -27,28 +46,41 @@ export async function POST(request: NextRequest) {
     }).populate('memberId')
 
     console.log('👤 User found:', user ? 'YES' : 'NO')
+    console.log('👤 User ID:', user?._id)
+    console.log('👤 Member ID from user:', user?.memberId?._id)
+    console.log('👤 Member ID type:', typeof user?.memberId)
+    
+    if (user?.memberId) {
+      console.log('👤 Member details:', {
+        id: user.memberId._id,
+        name: `${(user.memberId as any).firstName} ${(user.memberId as any).lastName}`,
+        email: (user.memberId as any).email
+      })
+    } else {
+      console.log('❌ No member associated with user')
+    }
 
     if (!user) {
-      return NextResponse.json(
+      return createCorsResponse(
         { message: 'Invalid email or password' },
-        { status: 401 }
+        401
       )
     }
 
     // Check if user is active
     if (!user.isActive) {
-      return NextResponse.json(
+      return createCorsResponse(
         { message: 'Account is deactivated. Please contact support.' },
-        { status: 401 }
+        401
       )
     }
 
     // Check if account is locked
     if (user.lockoutUntil && user.lockoutUntil > new Date()) {
       const timeLeft = Math.ceil((user.lockoutUntil.getTime() - Date.now()) / (1000 * 60))
-      return NextResponse.json(
+      return createCorsResponse(
         { message: `Account locked. Try again in ${timeLeft} minutes.` },
-        { status: 401 }
+        401
       )
     }
 
@@ -68,9 +100,9 @@ export async function POST(request: NextRequest) {
       
       await user.save()
 
-      return NextResponse.json(
+      return createCorsResponse(
         { message: 'Invalid email or password' },
-        { status: 401 }
+        401
       )
     }
 
@@ -132,18 +164,18 @@ export async function POST(request: NextRequest) {
       email: user.email 
     })
 
-    return NextResponse.json({
+    return createCorsResponse({
       success: true,
       message: 'Login successful',
       token,
       user: userResponse
-    }, { status: 200 })
+    }, 200)
 
   } catch (error) {
     console.error('Mobile login error:', error)
-    return NextResponse.json(
+    return createCorsResponse(
       { message: 'Login failed. Please try again.' },
-      { status: 500 }
+      500
     )
   }
 }

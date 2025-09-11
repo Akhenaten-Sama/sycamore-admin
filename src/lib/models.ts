@@ -528,6 +528,9 @@ const requestSubmissionSchema = new Schema<IRequestSubmission>({
 export interface IForm extends Document {
   title: string
   description: string
+  category?: string
+  icon?: string
+  color?: string
   fields: Array<{
     id: string
     label: string
@@ -552,6 +555,9 @@ export interface IForm extends Document {
 const formSchema = new Schema<IForm>({
   title: { type: String, required: true },
   description: { type: String },
+  category: { type: String, default: 'General' },
+  icon: { type: String, default: 'FormOutlined' },
+  color: { type: String, default: '#0A9396' },
   fields: [{
     id: { type: String, required: true },
     label: { type: String, required: true },

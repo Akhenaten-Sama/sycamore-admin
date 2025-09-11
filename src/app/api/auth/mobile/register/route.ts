@@ -7,6 +7,23 @@ import { sendWelcomeEmail } from '@/lib/email-service'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
+// CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': 'http://localhost:5173',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Credentials': 'true',
+}
+
+// Helper function to create response with CORS headers
+function createCorsResponse(data: any, status = 200) {
+  return NextResponse.json(data, { status, headers: corsHeaders })
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, { status: 200, headers: corsHeaders })
+}
+
 export async function POST(request: NextRequest) {
   try {
     await connectDB()
@@ -30,26 +47,26 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!firstName || !lastName || !email || !phone || !password) {
-      return NextResponse.json(
+      return createCorsResponse(
         { message: 'All fields are required' },
-        { status: 400 }
+        400
       )
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
-      return NextResponse.json(
+      return createCorsResponse(
         { message: 'Invalid email format' },
-        { status: 400 }
+        400
       )
     }
 
     // Validate password strength
     if (password.length < 6) {
-      return NextResponse.json(
+      return createCorsResponse(
         { message: 'Password must be at least 6 characters long' },
-        { status: 400 }
+        400
       )
     }
 
@@ -58,9 +75,9 @@ export async function POST(request: NextRequest) {
     const existingUser = await User.findOne({ email: email.toLowerCase() })
 
     if (existingMember || existingUser) {
-      return NextResponse.json(
+      return createCorsResponse(
         { message: 'Email already registered' },
-        { status: 400 }
+        400
       )
     }
 
@@ -102,10 +119,18 @@ export async function POST(request: NextRequest) {
     })
 
     const savedUser = await user.save()
+    console.log('✅ User saved with ID:', savedUser._id)
 
     // Link user to member
-    savedMember.userId = savedUser._id
+    savedMember.userId = savedUser._id as any
     await savedMember.save()
+    console.log('✅ Member updated with userId:', savedUser._id)
+
+    console.log('🔗 Final linking check:')
+    console.log('  - User ID:', savedUser._id)
+    console.log('  - User.memberId:', savedUser.memberId)
+    console.log('  - Member ID:', savedMember._id)
+    console.log('  - Member.userId:', savedMember.userId)
 
     // Generate JWT token
     const token = jwt.sign(
@@ -148,18 +173,18 @@ export async function POST(request: NextRequest) {
       email 
     })
 
-    return NextResponse.json({
+    return createCorsResponse({
       success: true,
       message: 'Registration successful',
       token,
       user: userResponse
-    }, { status: 201 })
+    }, 201)
 
   } catch (error) {
     console.error('Mobile registration error:', error)
-    return NextResponse.json(
+    return createCorsResponse(
       { message: 'Registration failed. Please try again.' },
-      { status: 500 }
+      500
     )
   }
 }

@@ -2,6 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
 import { Giving } from '@/lib/models'
 
+// CORS headers for mobile app
+const corsHeaders = {
+  'Access-Control-Allow-Origin': 'http://localhost:5173',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Credentials': 'true',
+}
+
+function createCorsResponse(data: any, status: number) {
+  return NextResponse.json(data, { status, headers: corsHeaders })
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return new Response(null, {
+    status: 200,
+    headers: corsHeaders,
+  })
+}
+
 export async function GET(request: NextRequest) {
   try {
     await connectDB()

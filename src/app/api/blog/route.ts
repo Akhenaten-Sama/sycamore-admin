@@ -2,6 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
 import { BlogPost } from '@/lib/models'
 
+// CORS headers for mobile app
+const corsHeaders = {
+  'Access-Control-Allow-Origin': 'http://localhost:5173',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Credentials': 'true',
+}
+
+function createCorsResponse(data: any, status: number) {
+  return NextResponse.json(data, { status, headers: corsHeaders })
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return new Response(null, {
+    status: 200,
+    headers: corsHeaders,
+  })
+}
+
 export async function GET(request: NextRequest) {
   try {
     await connectDB()
@@ -27,16 +46,16 @@ export async function GET(request: NextRequest) {
 
     const posts = await BlogPost.find(query).sort({ createdAt: -1 })
 
-    return NextResponse.json({
+    return createCorsResponse({
       success: true,
       data: posts,
       total: posts.length
-    })
+    }, 200)
   } catch (error) {
     console.error('Error fetching blog posts:', error)
-    return NextResponse.json(
+    return createCorsResponse(
       { success: false, error: 'Failed to fetch blog posts' },
-      { status: 500 }
+      500
     )
   }
 }
@@ -49,9 +68,9 @@ export async function POST(request: NextRequest) {
     
     // Validate required fields
     if (!body.title || !body.content || !body.excerpt || !body.author) {
-      return NextResponse.json(
+      return createCorsResponse(
         { success: false, error: 'Title, content, excerpt, and author are required' },
-        { status: 400 }
+        400
       )
     }
 
@@ -63,9 +82,9 @@ export async function POST(request: NextRequest) {
     // Check if slug already exists
     const existingPost = await BlogPost.findOne({ slug })
     if (existingPost) {
-      return NextResponse.json(
+      return createCorsResponse(
         { success: false, error: 'A post with this slug already exists' },
-        { status: 400 }
+        400
       )
     }
 
@@ -83,16 +102,16 @@ export async function POST(request: NextRequest) {
 
     const savedPost = await newPost.save()
 
-    return NextResponse.json({
+    return createCorsResponse({
       success: true,
       data: savedPost,
       message: 'Blog post created successfully'
-    })
+    }, 201)
   } catch (error) {
     console.error('Error creating blog post:', error)
-    return NextResponse.json(
+    return createCorsResponse(
       { success: false, error: 'Failed to create blog post' },
-      { status: 500 }
+      500
     )
   }
 }

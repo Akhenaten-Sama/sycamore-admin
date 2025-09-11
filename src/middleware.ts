@@ -15,13 +15,34 @@ const roleBasedRoutes: Record<string, string[]> = {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Allow public routes
-  if (publicRoutes.includes(pathname)) {
-    return NextResponse.next()
+  // Handle CORS for all API routes
+  if (pathname.startsWith('/api/')) {
+    // Handle preflight requests
+    if (request.method === 'OPTIONS') {
+      return new NextResponse(null, {
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': 'http://localhost:5173',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Allow-Credentials': 'true',
+        },
+      })
+    }
+
+    // For non-preflight API requests, continue with normal processing
+    // but we'll add CORS headers in the response
+    const response = NextResponse.next()
+    response.headers.set('Access-Control-Allow-Origin', 'http://localhost:5173')
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    response.headers.set('Access-Control-Allow-Credentials', 'true')
+    
+    return response
   }
 
-  // Allow API routes (they handle their own auth)
-  if (pathname.startsWith('/api/')) {
+  // Allow public routes
+  if (publicRoutes.includes(pathname)) {
     return NextResponse.next()
   }
 
@@ -68,6 +89,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/api/:path*',
     '/((?!_next/static|_next/image|favicon.ico|public/).*)',
   ],
 }
