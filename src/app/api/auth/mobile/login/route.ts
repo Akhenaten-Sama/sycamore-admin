@@ -3,26 +3,12 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import connectDB from '@/lib/mongodb'
 import { User, Member } from '@/lib/models'
+import { getCorsHeaders, corsResponse, handlePreflight } from '@/lib/cors'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
-// CORS headers for mobile app
-const corsHeaders = {
-  'Access-Control-Allow-Origin': 'http://localhost:5173',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Credentials': 'true',
-}
-
-function createCorsResponse(data: any, status: number) {
-  return NextResponse.json(data, { status, headers: corsHeaders })
-}
-
 export async function OPTIONS(request: NextRequest) {
-  return new Response(null, {
-    status: 200,
-    headers: corsHeaders,
-  })
+  return handlePreflight(request)
 }
 
 export async function POST(request: NextRequest) {
@@ -34,8 +20,9 @@ export async function POST(request: NextRequest) {
     console.log('📱 Mobile login attempt:', { email })
 
     if (!email || !password) {
-      return createCorsResponse(
+      return corsResponse(
         { message: 'Email and password are required' },
+        request,
         400
       )
     }
@@ -61,16 +48,18 @@ export async function POST(request: NextRequest) {
     }
 
     if (!user) {
-      return createCorsResponse(
+      return corsResponse(
         { message: 'Invalid email or password' },
+        request,
         401
       )
     }
 
     // Check if user is active
     if (!user.isActive) {
-      return createCorsResponse(
+      return corsResponse(
         { message: 'Account is deactivated. Please contact support.' },
+        request,
         401
       )
     }
@@ -78,8 +67,9 @@ export async function POST(request: NextRequest) {
     // Check if account is locked
     if (user.lockoutUntil && user.lockoutUntil > new Date()) {
       const timeLeft = Math.ceil((user.lockoutUntil.getTime() - Date.now()) / (1000 * 60))
-      return createCorsResponse(
+      return corsResponse(
         { message: `Account locked. Try again in ${timeLeft} minutes.` },
+        request,
         401
       )
     }
@@ -100,8 +90,9 @@ export async function POST(request: NextRequest) {
       
       await user.save()
 
-      return createCorsResponse(
+      return corsResponse(
         { message: 'Invalid email or password' },
+        request,
         401
       )
     }
@@ -164,17 +155,18 @@ export async function POST(request: NextRequest) {
       email: user.email 
     })
 
-    return createCorsResponse({
+    return corsResponse({
       success: true,
       message: 'Login successful',
       token,
       user: userResponse
-    }, 200)
+    }, request, 200)
 
   } catch (error) {
     console.error('Mobile login error:', error)
-    return createCorsResponse(
+    return corsResponse(
       { message: 'Login failed. Please try again.' },
+      request,
       500
     )
   }

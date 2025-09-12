@@ -4,24 +4,12 @@ import jwt from 'jsonwebtoken'
 import connectDB from '@/lib/mongodb'
 import { Member, User } from '@/lib/models'
 import { sendWelcomeEmail } from '@/lib/email-service'
+import { getCorsHeaders, corsResponse, handlePreflight } from '@/lib/cors'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
-// CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': 'http://localhost:5173',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Credentials': 'true',
-}
-
-// Helper function to create response with CORS headers
-function createCorsResponse(data: any, status = 200) {
-  return NextResponse.json(data, { status, headers: corsHeaders })
-}
-
 export async function OPTIONS(request: NextRequest) {
-  return new NextResponse(null, { status: 200, headers: corsHeaders })
+  return handlePreflight(request)
 }
 
 export async function POST(request: NextRequest) {
@@ -47,8 +35,9 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!firstName || !lastName || !email || !phone || !password) {
-      return createCorsResponse(
+      return corsResponse(
         { message: 'All fields are required' },
+        request,
         400
       )
     }
@@ -56,16 +45,18 @@ export async function POST(request: NextRequest) {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
-      return createCorsResponse(
+      return corsResponse(
         { message: 'Invalid email format' },
+        request,
         400
       )
     }
 
     // Validate password strength
     if (password.length < 6) {
-      return createCorsResponse(
+      return corsResponse(
         { message: 'Password must be at least 6 characters long' },
+        request,
         400
       )
     }
@@ -75,8 +66,9 @@ export async function POST(request: NextRequest) {
     const existingUser = await User.findOne({ email: email.toLowerCase() })
 
     if (existingMember || existingUser) {
-      return createCorsResponse(
+      return corsResponse(
         { message: 'Email already registered' },
+        request,
         400
       )
     }
@@ -173,17 +165,18 @@ export async function POST(request: NextRequest) {
       email 
     })
 
-    return createCorsResponse({
+    return corsResponse({
       success: true,
       message: 'Registration successful',
       token,
       user: userResponse
-    }, 201)
+    }, request, 201)
 
   } catch (error) {
     console.error('Mobile registration error:', error)
-    return createCorsResponse(
+    return corsResponse(
       { message: 'Registration failed. Please try again.' },
+      request,
       500
     )
   }

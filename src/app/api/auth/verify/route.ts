@@ -2,26 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import connectDB from '@/lib/mongodb'
 import { User } from '@/lib/models'
+import { getCorsHeaders, corsResponse, handlePreflight } from '@/lib/cors'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
-// CORS headers for mobile app
-const corsHeaders = {
-  'Access-Control-Allow-Origin': 'http://localhost:5173',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Credentials': 'true',
-}
-
-function createCorsResponse(data: any, status: number) {
-  return NextResponse.json(data, { status, headers: corsHeaders })
-}
-
 export async function OPTIONS(request: NextRequest) {
-  return new Response(null, {
-    status: 200,
-    headers: corsHeaders,
-  })
+  return handlePreflight(request)
 }
 
 export async function GET(request: NextRequest) {
@@ -29,8 +15,9 @@ export async function GET(request: NextRequest) {
     const authorization = request.headers.get('authorization')
     
     if (!authorization) {
-      return createCorsResponse(
+      return corsResponse(
         { message: 'Authorization header is required' },
+        request,
         401
       )
     }
@@ -38,8 +25,9 @@ export async function GET(request: NextRequest) {
     const token = authorization.replace('Bearer ', '')
     
     if (!token) {
-      return createCorsResponse(
+      return corsResponse(
         { message: 'Token is required' },
+        request,
         401
       )
     }
@@ -53,15 +41,15 @@ export async function GET(request: NextRequest) {
     const user = await User.findById(decoded.userId).populate('memberId')
     
     if (!user) {
-      return createCorsResponse(
-        { message: 'User not found' },
+      return corsResponse(
+        { message: 'User not found' }, request,
         404
       )
     }
 
     if (!user.isActive) {
-      return createCorsResponse(
-        { message: 'Account is deactivated' },
+      return corsResponse(
+        { message: 'Account is deactivated' }, request,
         401
       )
     }
@@ -86,11 +74,11 @@ export async function GET(request: NextRequest) {
       } : null
     }
 
-    return createCorsResponse(
+    return corsResponse(
       { 
         message: 'Token is valid',
         user: userInfo
-      },
+      }, request,
       200
     )
 
@@ -98,21 +86,21 @@ export async function GET(request: NextRequest) {
     console.error('❌ Token verification error:', error)
     
     if (error instanceof jwt.JsonWebTokenError) {
-      return createCorsResponse(
-        { message: 'Invalid token' },
+      return corsResponse(
+        { message: 'Invalid token' }, request,
         401
       )
     }
     
     if (error instanceof jwt.TokenExpiredError) {
-      return createCorsResponse(
-        { message: 'Token has expired' },
+      return corsResponse(
+        { message: 'Token has expired' }, request,
         401
       )
     }
 
-    return createCorsResponse(
-      { message: 'Internal server error' },
+    return corsResponse(
+      { message: 'Internal server error' }, request,
       500
     )
   }
@@ -123,8 +111,8 @@ export async function POST(request: NextRequest) {
     const { token } = await request.json()
     
     if (!token) {
-      return createCorsResponse(
-        { message: 'Token is required' },
+      return corsResponse(
+        { message: 'Token is required' }, request,
         400
       )
     }
@@ -138,15 +126,15 @@ export async function POST(request: NextRequest) {
     const user = await User.findById(decoded.userId).populate('memberId')
     
     if (!user) {
-      return createCorsResponse(
-        { message: 'User not found' },
+      return corsResponse(
+        { message: 'User not found' }, request,
         404
       )
     }
 
     if (!user.isActive) {
-      return createCorsResponse(
-        { message: 'Account is deactivated' },
+      return corsResponse(
+        { message: 'Account is deactivated' }, request,
         401
       )
     }
@@ -171,12 +159,12 @@ export async function POST(request: NextRequest) {
       } : null
     }
 
-    return createCorsResponse(
+    return corsResponse(
       { 
         message: 'Token is valid',
         user: userInfo,
         valid: true
-      },
+      }, request,
       200
     )
 
@@ -184,21 +172,21 @@ export async function POST(request: NextRequest) {
     console.error('❌ Token verification error:', error)
     
     if (error instanceof jwt.JsonWebTokenError) {
-      return createCorsResponse(
-        { message: 'Invalid token', valid: false },
+      return corsResponse(
+        { message: 'Invalid token', valid: false }, request,
         401
       )
     }
     
     if (error instanceof jwt.TokenExpiredError) {
-      return createCorsResponse(
-        { message: 'Token has expired', valid: false },
+      return corsResponse(
+        { message: 'Token has expired', valid: false }, request,
         401
       )
     }
 
-    return createCorsResponse(
-      { message: 'Internal server error', valid: false },
+    return corsResponse(
+      { message: 'Internal server error', valid: false }, request,
       500
     )
   }
