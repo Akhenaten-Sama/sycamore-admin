@@ -34,10 +34,13 @@ export async function GET(request: NextRequest) {
       .sort({ createdAt: -1 })
 
     // Transform _id to id for frontend compatibility
-    const transformedMembers = members.map(member => ({
-      ...member.toObject(),
-      id: member._id.toString()
-    }))
+    const transformedMembers = members.map(member => {
+      const memberDoc = member as any // Cast to any to access MongoDB document properties
+      return {
+        ...memberDoc.toObject(),
+        id: memberDoc._id.toString()
+      }
+    })
 
     return NextResponse.json({
       success: true,

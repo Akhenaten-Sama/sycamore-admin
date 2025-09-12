@@ -76,6 +76,11 @@ export async function POST(request: NextRequest) {
       weddingAnniversary: body.weddingAnniversary ? new Date(body.weddingAnniversary) : undefined,
       maritalStatus: body.maritalStatus || 'single',
       emergencyContact: body.emergencyContact,
+      // Add missing required properties
+      communityIds: body.communityIds || [],
+      attendanceStreak: 0,
+      totalAttendance: 0,
+      totalGiving: 0,
     }
 
     dataStore.members.push(newMember)

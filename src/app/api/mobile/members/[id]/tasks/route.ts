@@ -2,9 +2,28 @@ import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
 import { Member, Task } from '@/lib/models'
 
+// CORS headers for mobile app
+const corsHeaders = {
+  'Access-Control-Allow-Origin': 'http://localhost:5173',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Credentials': 'true',
+}
+
+function createCorsResponse(data: any, status: number) {
+  return NextResponse.json(data, { status, headers: corsHeaders })
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return new Response(null, {
+    status: 200,
+    headers: corsHeaders,
+  })
+}
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB()
@@ -17,11 +36,13 @@ export async function GET(
     const member = await Member.findById(memberId)
     if (!member) {
       console.log('❌ Member not found in database')
-      return NextResponse.json(
+      return createCorsResponse(
         { message: 'Member not found' },
-        { status: 404 }
+        404
       )
     }
+
+    const memberDoc = member as any
 
     // Check if Task model exists, if not create mock tasks
     let tasks = []
@@ -30,7 +51,7 @@ export async function GET(
       tasks = await Task.find({ 
         $or: [
           { assignedTo: memberId },
-          { teamId: member.teamId }
+          { teamId: memberDoc.teamId }
         ]
       }).sort({ createdAt: -1 })
     } catch (error) {
@@ -79,13 +100,15 @@ export async function GET(
 
     // Categorize tasks
     const categorizedTasks = {
-      pending: tasks.filter(t => t.status === 'pending'),
-      inProgress: tasks.filter(t => t.status === 'in_progress'),
-      completed: tasks.filter(t => t.status === 'completed'),
-      overdue: tasks.filter(t => 
-        t.status !== 'completed' && 
-        new Date(t.dueDate) < new Date()
-      )
+      pending: tasks.filter(t => (t as any).status === 'pending'),
+      inProgress: tasks.filter(t => (t as any).status === 'in_progress'),
+      completed: tasks.filter(t => (t as any).status === 'completed'),
+      overdue: tasks.filter(t => {
+        const task = t as any
+        return task.status !== 'completed' && 
+               task.dueDate && 
+               new Date(task.dueDate) < new Date()
+      })
     }
 
     // Calculate task stats
@@ -101,20 +124,20 @@ export async function GET(
 
     console.log('✅ Member tasks loaded successfully')
 
-    return NextResponse.json({
+    return createCorsResponse({
       success: true,
       data: {
         tasks: categorizedTasks,
         stats,
         allTasks: tasks
       }
-    })
+    }, 200)
 
   } catch (error) {
     console.error('Error fetching member tasks:', error)
-    return NextResponse.json(
+    return createCorsResponse(
       { message: 'Failed to fetch member tasks' },
-      { status: 500 }
+      500
     )
   }
 }

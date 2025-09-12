@@ -4,12 +4,13 @@ import { RequestForm } from '@/lib/models'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB()
     
-    const form = await RequestForm.findById(params.id)
+    const { id } = await params
+    const form = await RequestForm.findById(id)
       .populate('createdBy', 'firstName lastName email')
     
     if (!form) {
@@ -34,15 +35,16 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB()
     
     const body = await request.json()
+    const { id } = await params
     
     const updatedForm = await RequestForm.findByIdAndUpdate(
-      params.id,
+      id,
       body,
       { new: true, runValidators: true }
     ).populate('createdBy', 'firstName lastName email')
@@ -79,12 +81,13 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB()
     
-    const deletedForm = await RequestForm.findByIdAndDelete(params.id)
+    const { id } = await params
+    const deletedForm = await RequestForm.findByIdAndDelete(id)
     
     if (!deletedForm) {
       return NextResponse.json(

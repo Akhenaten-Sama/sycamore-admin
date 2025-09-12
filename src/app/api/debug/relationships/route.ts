@@ -17,18 +17,19 @@ export async function GET(request: NextRequest) {
     const results = []
     
     for (const user of users) {
-      const userInfo = {
-        userId: user._id.toString(),
-        email: user.email,
-        hasPopulatedMember: !!user.memberId,
-        memberIdFromUser: user.memberId?.toString(),
+      const userDoc = user as any // Cast to any to access MongoDB document properties
+      const userInfo: any = {
+        userId: userDoc._id.toString(),
+        email: userDoc.email,
+        hasPopulatedMember: !!userDoc.memberId,
+        memberIdFromUser: userDoc.memberId?.toString(),
         memberDetails: null,
         backLinkCheck: null
       }
       
       // If user has a memberId, get member details
-      if (user.memberId) {
-        const member = user.memberId as any
+      if (userDoc.memberId) {
+        const member = userDoc.memberId as any
         userInfo.memberDetails = {
           memberId: member._id.toString(),
           name: `${member.firstName} ${member.lastName}`,
@@ -38,9 +39,9 @@ export async function GET(request: NextRequest) {
         
         // Check back-link from member to user
         userInfo.backLinkCheck = {
-          memberUserIdMatches: member.userId?.toString() === user._id.toString(),
+          memberUserIdMatches: member.userId?.toString() === userDoc._id.toString(),
           memberUserId: member.userId?.toString(),
-          actualUserId: user._id.toString()
+          actualUserId: userDoc._id.toString()
         }
       }
       
@@ -52,24 +53,25 @@ export async function GET(request: NextRequest) {
     const membersWithoutUsers = []
     
     for (const member of allMembers) {
-      if (!member.userId) {
+      const memberDoc = member as any // Cast to any to access MongoDB document properties
+      if (!memberDoc.userId) {
         membersWithoutUsers.push({
-          memberId: member._id.toString(),
-          name: `${member.firstName} ${member.lastName}`,
-          email: member.email,
+          memberId: memberDoc._id.toString(),
+          name: `${memberDoc.firstName} ${memberDoc.lastName}`,
+          email: memberDoc.email,
           hasUserId: false
         })
       } else {
         // Check if the referenced user actually exists
-        const userExists = await User.findById(member.userId)
+        const userExists = await User.findById(memberDoc.userId)
         if (!userExists) {
           membersWithoutUsers.push({
-            memberId: member._id.toString(),
-            name: `${member.firstName} ${member.lastName}`,
-            email: member.email,
+            memberId: memberDoc._id.toString(),
+            name: `${memberDoc.firstName} ${memberDoc.lastName}`,
+            email: memberDoc.email,
             hasUserId: true,
             userExists: false,
-            referencedUserId: member.userId.toString()
+            referencedUserId: memberDoc.userId.toString()
           })
         }
       }

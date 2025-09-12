@@ -4,12 +4,12 @@ import { ObjectId } from 'mongodb';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { postId: string } }
+  { params }: { params: Promise<{ postId: string }> }
 ) {
   try {
     const mongoose = await connectDB();
     const db = mongoose.connection.db;
-    const postId = params.postId;
+    const { postId } = await params;
     const { userId } = await request.json();
 
     if (!userId) {

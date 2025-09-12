@@ -17,6 +17,10 @@ const members: Member[] = [
     dateOfBirth: new Date('1990-05-15'),
     address: '123 Main St, City',
     maritalStatus: 'single',
+    communityIds: ['1', '2'],
+    attendanceStreak: 5,
+    totalAttendance: 24,
+    totalGiving: 1200,
   },
   {
     id: '2',
@@ -32,6 +36,10 @@ const members: Member[] = [
     dateOfBirth: new Date('1985-08-22'),
     weddingAnniversary: new Date('2015-06-10'),
     maritalStatus: 'married',
+    communityIds: ['1', '3'],
+    attendanceStreak: 12,
+    totalAttendance: 48,
+    totalGiving: 2400,
   },
   {
     id: '3',
@@ -45,6 +53,10 @@ const members: Member[] = [
     isAdmin: false,
     dateOfBirth: new Date('1992-12-03'),
     maritalStatus: 'divorced',
+    communityIds: ['2'],
+    attendanceStreak: 2,
+    totalAttendance: 8,
+    totalGiving: 150,
   },
   {
     id: '4',
@@ -59,6 +71,10 @@ const members: Member[] = [
     isAdmin: true,
     dateOfBirth: new Date('1988-03-17'),
     maritalStatus: 'single',
+    communityIds: ['1', '2', '3'],
+    attendanceStreak: 20,
+    totalAttendance: 95,
+    totalGiving: 4800,
   },
 ]
 

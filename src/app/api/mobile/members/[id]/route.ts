@@ -4,7 +4,7 @@ import { Member, AttendanceRecord, Giving } from '@/lib/models'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB()
@@ -22,6 +22,8 @@ export async function GET(
           { status: 404 }
         )
       }
+
+      const memberDoc = member as any
 
       // Calculate stats
       const totalAttendance = await AttendanceRecord.countDocuments({ memberId })
@@ -63,20 +65,27 @@ export async function GET(
         attendanceStreak,
         totalAttendance,
         totalGiving: totalGiving[0]?.total || 0,
-        communitiesCount: member.communityIds?.length || 0,
+        communitiesCount: memberDoc.communityIds?.length || 0,
         recentActivity: [
-          ...recentAttendance.map(att => ({
-            type: 'attendance',
-            date: att.date,
-            description: `Attended ${att.eventId?.name || 'Event'}`,
-            details: att.eventId
-          })),
-          ...recentGiving.map(give => ({
-            type: 'giving',
-            date: give.date,
-            description: `Donated $${give.amount} for ${give.purpose}`,
-            details: { amount: give.amount, purpose: give.purpose }
-          }))
+          ...recentAttendance.map(att => {
+            const attendanceDoc = att as any
+            const eventDoc = attendanceDoc.eventId as any
+            return {
+              type: 'attendance',
+              date: attendanceDoc.date,
+              description: `Attended ${eventDoc?.name || 'Event'}`,
+              details: eventDoc
+            }
+          }),
+          ...recentGiving.map(give => {
+            const givingDoc = give as any
+            return {
+              type: 'giving',
+              date: givingDoc.date,
+              description: `Donated $${givingDoc.amount} for ${givingDoc.purpose}`,
+              details: { amount: givingDoc.amount, purpose: givingDoc.purpose }
+            }
+          })
         ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10)
       }
 
@@ -93,13 +102,17 @@ export async function GET(
         .sort({ date: -1 })
         .limit(50)
 
-      const journey = activities.map(activity => ({
-        date: activity.date,
-        type: 'attendance',
-        title: activity.eventId?.name || 'Church Event',
-        description: `Attended ${activity.eventId?.type || 'service'}`,
-        status: activity.status || 'present'
-      }))
+      const journey = activities.map(activity => {
+        const activityDoc = activity as any
+        const eventDoc = activityDoc.eventId as any
+        return {
+          date: activityDoc.date,
+          type: 'attendance',
+          title: eventDoc?.name || 'Church Event',
+          description: `Attended ${eventDoc?.type || 'service'}`,
+          status: activityDoc.status || 'present'
+        }
+      })
 
       return NextResponse.json({
         success: true,

@@ -2,6 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 
+// CORS headers for mobile app
+const corsHeaders = {
+  'Access-Control-Allow-Origin': 'http://localhost:5173',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Credentials': 'true',
+}
+
+function createCorsResponse(data: any, status: number) {
+  return NextResponse.json(data, { status, headers: corsHeaders })
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return new Response(null, {
+    status: 200,
+    headers: corsHeaders,
+  })
+}
+
 export async function GET(request: NextRequest) {
   try {
     const mongoose = await connectDB();
@@ -11,9 +30,9 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
     
     if (!userId) {
-      return NextResponse.json(
+      return createCorsResponse(
         { success: false, message: 'User ID is required' },
-        { status: 400 }
+        400
       );
     }
 
@@ -23,13 +42,13 @@ export async function GET(request: NextRequest) {
     });
 
     if (!profile) {
-      return NextResponse.json(
+      return createCorsResponse(
         { success: false, message: 'Profile not found' },
-        { status: 404 }
+        404
       );
     }
 
-    return NextResponse.json({
+    return createCorsResponse({
       success: true,
       data: {
         id: profile._id.toString(),
@@ -47,13 +66,13 @@ export async function GET(request: NextRequest) {
         interests: profile.interests || [],
         bio: profile.bio || ''
       }
-    });
+    }, 200);
 
   } catch (error) {
     console.error('Error fetching profile:', error);
-    return NextResponse.json(
+    return createCorsResponse(
       { success: false, message: 'Failed to fetch profile' },
-      { status: 500 }
+      500
     );
   }
 }
@@ -78,13 +97,13 @@ export async function PUT(request: NextRequest) {
     } = await request.json();
 
     if (!userId) {
-      return NextResponse.json(
+      return createCorsResponse(
         { success: false, message: 'User ID is required' },
-        { status: 400 }
+        400
       );
     }
 
-    const updateData = {
+    const updateData: any = {
       firstName,
       lastName,
       email,
@@ -109,9 +128,9 @@ export async function PUT(request: NextRequest) {
     );
 
     if (result.matchedCount === 0) {
-      return NextResponse.json(
+      return createCorsResponse(
         { success: false, message: 'Profile not found' },
-        { status: 404 }
+        404
       );
     }
 
@@ -119,20 +138,20 @@ export async function PUT(request: NextRequest) {
       _id: new ObjectId(userId)
     });
 
-    return NextResponse.json({
+    return createCorsResponse({
       success: true,
       data: {
         id: updatedProfile._id.toString(),
         ...updatedProfile,
         _id: undefined
       }
-    });
+    }, 200);
 
   } catch (error) {
     console.error('Error updating profile:', error);
-    return NextResponse.json(
+    return createCorsResponse(
       { success: false, message: 'Failed to update profile' },
-      { status: 500 }
+      500
     );
   }
 }

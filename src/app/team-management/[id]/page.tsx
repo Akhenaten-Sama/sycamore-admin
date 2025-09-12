@@ -30,7 +30,7 @@ interface Team {
   members: TeamMember[]
 }
 
-export default function TeamManagementPage({ params }: { params: { id: string } }) {
+export default function TeamManagementPage({ params }: { params: Promise<{ id: string }> }) {
   const { user } = useAuth()
   const router = useRouter()
   const [team, setTeam] = useState<Team | null>(null)
@@ -38,6 +38,7 @@ export default function TeamManagementPage({ params }: { params: { id: string } 
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'overview' | 'tasks' | 'members'>('overview')
   const [showCreateTask, setShowCreateTask] = useState(false)
+  const [teamId, setTeamId] = useState<string>('')
 
   // New task form state
   const [newTask, setNewTask] = useState({
@@ -47,6 +48,15 @@ export default function TeamManagementPage({ params }: { params: { id: string } 
     dueDate: '',
     priority: 'medium' as 'low' | 'medium' | 'high'
   })
+
+  // Extract team ID from params
+  useEffect(() => {
+    async function getTeamId() {
+      const resolvedParams = await params
+      setTeamId(resolvedParams.id)
+    }
+    getTeamId()
+  }, [params])
 
   useEffect(() => {
     if (!user) {
@@ -60,13 +70,15 @@ export default function TeamManagementPage({ params }: { params: { id: string } 
       return
     }
 
-    fetchTeamData()
-    fetchTasks()
-  }, [user, params.id])
+    if (teamId) {
+      fetchTeamData()
+      fetchTasks()
+    }
+  }, [user, teamId])
 
   const fetchTeamData = async () => {
     try {
-      const response = await fetch(`/api/teams/${params.id}`)
+      const response = await fetch(`/api/teams/${teamId}`)
       if (response.ok) {
         const data = await response.json()
         setTeam(data.data)
@@ -78,7 +90,7 @@ export default function TeamManagementPage({ params }: { params: { id: string } 
 
   const fetchTasks = async () => {
     try {
-      const response = await fetch(`/api/teams/${params.id}/tasks`)
+      const response = await fetch(`/api/teams/${teamId}/tasks`)
       if (response.ok) {
         const data = await response.json()
         setTasks(data.data || [])
@@ -92,7 +104,7 @@ export default function TeamManagementPage({ params }: { params: { id: string } 
 
   const createTask = async () => {
     try {
-      const response = await fetch(`/api/teams/${params.id}/tasks`, {
+      const response = await fetch(`/api/teams/${teamId}/tasks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -122,7 +134,7 @@ export default function TeamManagementPage({ params }: { params: { id: string } 
 
   const updateTaskStatus = async (taskId: string, status: string) => {
     try {
-      const response = await fetch(`/api/teams/${params.id}/tasks/${taskId}`, {
+      const response = await fetch(`/api/teams/${teamId}/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -142,7 +154,7 @@ export default function TeamManagementPage({ params }: { params: { id: string } 
     if (!confirm('Are you sure you want to delete this task?')) return
 
     try {
-      const response = await fetch(`/api/teams/${params.id}/tasks/${taskId}`, {
+      const response = await fetch(`/api/teams/${teamId}/tasks/${taskId}`, {
         method: 'DELETE',
       })
 

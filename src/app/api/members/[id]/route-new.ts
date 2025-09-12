@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Member } from '@/types'
 import { dataStore } from '@/lib/data-store'
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const member = dataStore.members.find(m => m.id === params.id)
+    const { id } = await params
+    const member = dataStore.members.find(m => m.id === id)
     
     if (!member) {
       return NextResponse.json(
@@ -25,10 +26,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const body = await request.json()
-    const memberIndex = dataStore.members.findIndex(m => m.id === params.id)
+    const { id } = await params
+    const memberIndex = dataStore.members.findIndex(m => m.id === id)
     
     if (memberIndex === -1) {
       return NextResponse.json(
@@ -39,7 +41,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     // Check if email already exists (excluding current member)
     if (body.email) {
-      const existingMember = dataStore.members.find(m => m.email === body.email && m.id !== params.id)
+      const existingMember = dataStore.members.find(m => m.email === body.email && m.id !== id)
       if (existingMember) {
         return NextResponse.json(
           { success: false, error: 'Member with this email already exists' },
@@ -80,9 +82,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const memberIndex = dataStore.members.findIndex(m => m.id === params.id)
+    const { id } = await params
+    const memberIndex = dataStore.members.findIndex(m => m.id === id)
     
     if (memberIndex === -1) {
       return NextResponse.json(

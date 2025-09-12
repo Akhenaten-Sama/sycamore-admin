@@ -4,12 +4,13 @@ import { Task, Member, Team } from '@/lib/models'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB()
     
-    const task = await Task.findById(params.id)
+    const { id } = await params
+    const task = await Task.findById(id)
       .populate('teamId', 'name description')
       .populate('assigneeId', 'firstName lastName email')
       .populate('creatorId', 'firstName lastName email')
@@ -36,14 +37,15 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB()
     
     const body = await request.json()
+    const { id } = await params
     
-    const task = await Task.findById(params.id)
+    const task = await Task.findById(id)
     if (!task) {
       return NextResponse.json(
         { success: false, error: 'Task not found' },
@@ -81,7 +83,7 @@ export async function PUT(
     if (body.isPublic !== undefined) updateData.isPublic = body.isPublic
 
     const updatedTask = await Task.findByIdAndUpdate(
-      params.id,
+      id,
       updateData,
       { new: true }
     )
@@ -105,12 +107,13 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB()
     
-    const task = await Task.findById(params.id)
+    const { id } = await params
+    const task = await Task.findById(id)
     if (!task) {
       return NextResponse.json(
         { success: false, error: 'Task not found' },
@@ -138,7 +141,7 @@ export async function DELETE(
       }
     }
 
-    await Task.findByIdAndDelete(params.id)
+    await Task.findByIdAndDelete(id)
 
     return NextResponse.json({
       success: true,

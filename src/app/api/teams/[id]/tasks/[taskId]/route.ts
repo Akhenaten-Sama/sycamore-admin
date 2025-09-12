@@ -5,7 +5,7 @@ import { verifyToken } from '@/lib/auth'
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string; taskId: string } }
+  { params }: { params: Promise<{ id: string; taskId: string }> }
 ) {
   try {
     await connectDB()
@@ -19,7 +19,7 @@ export async function PUT(
       )
     }
 
-    const { id: teamId, taskId } = params
+    const { id: teamId, taskId } = await params
     const updates = await request.json()
 
     // Get the task
@@ -100,7 +100,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; taskId: string } }
+  { params }: { params: Promise<{ id: string; taskId: string }> }
 ) {
   try {
     await connectDB()
@@ -114,7 +114,7 @@ export async function DELETE(
       )
     }
 
-    const { id: teamId, taskId } = params
+    const { id: teamId, taskId } = await params
 
     // Get the task
     const task = await Task.findById(taskId)

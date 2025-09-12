@@ -5,7 +5,7 @@ import { verifyToken } from '../../../../../lib/auth'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB()
@@ -19,7 +19,7 @@ export async function GET(
       )
     }
 
-    const { id: teamId } = params
+    const { id: teamId } = await params
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
     const assigneeId = searchParams.get('assigneeId')
@@ -84,7 +84,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB()
@@ -98,7 +98,8 @@ export async function POST(
       )
     }
 
-    const { id: teamId } = params
+    const { id: teamId } = await params
+
     const {
       title,
       description,

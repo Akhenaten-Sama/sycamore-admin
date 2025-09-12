@@ -79,7 +79,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB()
@@ -99,7 +99,7 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    const memberId = params.id
+    const { id: memberId } = await params
     const { communityId } = await request.json()
 
     if (!communityId) {

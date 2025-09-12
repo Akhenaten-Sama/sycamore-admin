@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import connectDB from '@/lib/mongodb'
-import { Member, AttendanceRecord, Giving, ActivityLog, BlogPost } from '@/lib/models'
+import { Member, AttendanceRecord, Giving, UserActivity, BlogPost } from '@/lib/models'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
 
     // Get activity logs if available
     try {
-      const activityLogs = await ActivityLog.find({ memberId }).sort({ timestamp: -1 }).limit(20)
+      const activityLogs = await UserActivity.find({ userId: memberId }).sort({ timestamp: -1 }).limit(20)
       activities.push(...activityLogs.map((log: any) => ({
         id: log._id,
         type: log.activityType,
@@ -97,8 +97,8 @@ export async function GET(request: NextRequest) {
         points: getActivityPoints(log.activityType)
       })))
     } catch (error) {
-      // ActivityLog might not exist, continue without it
-      console.log('ActivityLog not found, skipping...')
+      // UserActivity might not exist, continue without it
+      console.log('UserActivity not found, skipping...', error)
     }
 
     // Sort all activities by date (most recent first)

@@ -4,7 +4,7 @@ import { Member } from '@/lib/models'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB()
@@ -17,11 +17,12 @@ export async function GET(
     console.log('👤 Member exists:', member ? 'YES' : 'NO')
     
     if (member) {
+      const memberDoc = member as any
       console.log('📋 Member details:', {
-        id: member._id,
-        name: `${member.firstName} ${member.lastName}`,
-        email: member.email,
-        dateJoined: member.dateJoined
+        id: memberDoc._id,
+        name: `${memberDoc.firstName} ${memberDoc.lastName}`,
+        email: memberDoc.email,
+        dateJoined: memberDoc.dateJoined
       })
     }
     
@@ -35,18 +36,18 @@ export async function GET(
       exists: !!member,
       validId: isValidId,
       member: member ? {
-        id: member._id,
-        firstName: member.firstName,
-        lastName: member.lastName,
-        email: member.email,
-        dateJoined: member.dateJoined
+        id: (member as any)._id,
+        firstName: (member as any).firstName,
+        lastName: (member as any).lastName,
+        email: (member as any).email,
+        dateJoined: (member as any).dateJoined
       } : null
     })
     
   } catch (error) {
     console.error('Error checking member:', error)
     return NextResponse.json(
-      { message: 'Failed to check member', error: error.message },
+      { message: 'Failed to check member', error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
