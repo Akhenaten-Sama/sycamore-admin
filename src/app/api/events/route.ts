@@ -1,24 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
 import { Event } from '@/lib/models'
-
-// CORS headers for mobile app
-const corsHeaders = {
-  'Access-Control-Allow-Origin': 'http://localhost:5173',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Credentials': 'true',
-}
-
-function createCorsResponse(data: any, status: number) {
-  return NextResponse.json(data, { status, headers: corsHeaders })
-}
+import { getCorsHeaders, corsResponse, handlePreflight } from '@/lib/cors'
 
 export async function OPTIONS(request: NextRequest) {
-  return new Response(null, {
-    status: 200,
-    headers: corsHeaders,
-  })
+  return handlePreflight(request)
 }
 
 export async function GET(request: NextRequest) {
@@ -73,15 +59,16 @@ export async function GET(request: NextRequest) {
       ? allEvents.filter(event => new Date(event.date) >= currentDate)
       : allEvents
 
-    return createCorsResponse({
+    return corsResponse({
       success: true,
       data: filteredEvents,
       total: filteredEvents.length
-    }, 200)
+    }, request, 200)
   } catch (error) {
     console.error('Error fetching events:', error)
-    return createCorsResponse(
+    return corsResponse(
       { success: false, error: 'Failed to fetch events' },
+      request,
       500
     )
   }
@@ -158,8 +145,9 @@ export async function POST(request: NextRequest) {
     
     // Validate required fields
     if (!eventData.name || !eventData.date) {
-      return createCorsResponse(
+      return corsResponse(
         { success: false, error: 'Name and date are required' },
+        request,
         400
       )
     }
@@ -172,15 +160,16 @@ export async function POST(request: NextRequest) {
 
     await event.save()
 
-    return createCorsResponse({
+    return corsResponse({
       success: true,
       data: event,
       message: 'Event created successfully'
-    }, 201)
+    }, request, 201)
   } catch (error) {
     console.error('Error creating event:', error)
-    return createCorsResponse(
+    return corsResponse(
       { success: false, error: 'Failed to create event' },
+      request,
       500
     )
   }

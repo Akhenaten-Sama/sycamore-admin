@@ -9,16 +9,14 @@ const allowedOrigins = [
 ];
 
 export function getCorsHeaders(request?: Request): Record<string, string> {
-  const origin = request?.headers.get('origin') || '';
-  
-  // Check if the origin is in our allowed list
-  const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  // Allow all origins for now - TODO: restrict in production if needed
+  const origin = request?.headers.get('origin') || '*';
   
   return {
-    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Allow-Credentials': 'false', // Must be false when using '*'
   };
 }
 
