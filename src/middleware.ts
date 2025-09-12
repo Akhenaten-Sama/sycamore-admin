@@ -22,10 +22,10 @@ export function middleware(request: NextRequest) {
       return new NextResponse(null, {
         status: 200,
         headers: {
-          'Access-Control-Allow-Origin': 'http://localhost:5173',
+          'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-          'Access-Control-Allow-Credentials': 'true',
+          'Access-Control-Allow-Credentials': 'false',
         },
       })
     }
@@ -33,10 +33,10 @@ export function middleware(request: NextRequest) {
     // For non-preflight API requests, continue with normal processing
     // but we'll add CORS headers in the response
     const response = NextResponse.next()
-    response.headers.set('Access-Control-Allow-Origin', 'http://localhost:5173')
+    response.headers.set('Access-Control-Allow-Origin', '*')
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
     response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-    response.headers.set('Access-Control-Allow-Credentials', 'true')
+    response.headers.set('Access-Control-Allow-Credentials', 'false')
     
     return response
   }
