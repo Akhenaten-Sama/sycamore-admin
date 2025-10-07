@@ -19,8 +19,12 @@ import {
   CheckCircle,
   XCircle,
   Printer,
-  Download
+  Download,
+  UserCheck,
+  Activity
 } from 'lucide-react'
+import AdminCheckout from '@/components/AdminCheckout'
+import LiveDashboard from '@/components/LiveDashboard'
 
 const breadcrumbItems = [
   { label: 'Dashboard', href: '/dashboard' },
@@ -72,7 +76,7 @@ export default function JuniorChurchPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<'members' | 'attendance' | 'checkin'>('members')
+  const [activeTab, setActiveTab] = useState<'members' | 'attendance' | 'checkin' | 'admin-checkout' | 'live-dashboard'>('live-dashboard')
   const [todayDate] = useState(new Date().toISOString().split('T')[0])
   const [barcodeInput, setBarcodeInput] = useState('')
   const [formData, setFormData] = useState({
@@ -115,54 +119,63 @@ export default function JuniorChurchPage() {
   const loadJuniorMembers = async () => {
     setLoading(true)
     try {
-      // Mock data for now - replace with actual API call
-      const mockMembers: JuniorMember[] = [
-        {
-          id: '1',
-          firstName: 'Emma',
-          lastName: 'Johnson',
-          dateOfBirth: new Date('2018-03-15'),
-          age: 6,
-          parentName: 'Sarah Johnson',
-          parentPhone: '+1234567890',
-          parentEmail: 'sarah.johnson@email.com',
-          emergencyContact: {
-            name: 'Mike Johnson',
-            phone: '+1234567891',
-            relationship: 'Father'
+      const response = await fetch('/api/junior-church/members?active=true')
+      const result = await response.json()
+      
+      if (result.success) {
+        setJuniorMembers(result.data)
+      } else {
+        console.error('Failed to load junior members:', result.message)
+        // Fallback to mock data for now
+        const mockMembers: JuniorMember[] = [
+          {
+            id: '1',
+            firstName: 'Emma',
+            lastName: 'Johnson',
+            dateOfBirth: new Date('2018-03-15'),
+            age: 6,
+            parentName: 'Sarah Johnson',
+            parentPhone: '+1234567890',
+            parentEmail: 'sarah.johnson@email.com',
+            emergencyContact: {
+              name: 'Mike Johnson',
+              phone: '+1234567891',
+              relationship: 'Father'
+            },
+            allergies: 'Peanuts',
+            medicalNotes: 'Carries EpiPen',
+            pickupAuthority: ['Sarah Johnson', 'Mike Johnson', 'Grandma Johnson'],
+            class: 'elementary',
+            isActive: true,
+            registeredAt: new Date('2024-01-15'),
+            barcodeId: 'JC2024001'
           },
-          allergies: 'Peanuts',
-          medicalNotes: 'Carries EpiPen',
-          pickupAuthority: ['Sarah Johnson', 'Mike Johnson', 'Grandma Johnson'],
-          class: 'elementary',
-          isActive: true,
-          registeredAt: new Date('2024-01-15'),
-          barcodeId: 'JC2024001'
-        },
-        {
-          id: '2',
-          firstName: 'Noah',
-          lastName: 'Williams',
-          dateOfBirth: new Date('2021-08-22'),
-          age: 3,
-          parentName: 'Lisa Williams',
-          parentPhone: '+1234567892',
-          parentEmail: 'lisa.williams@email.com',
-          emergencyContact: {
-            name: 'David Williams',
-            phone: '+1234567893',
-            relationship: 'Father'
-          },
-          pickupAuthority: ['Lisa Williams', 'David Williams'],
-          class: 'toddlers',
-          isActive: true,
-          registeredAt: new Date('2024-02-01'),
-          barcodeId: 'JC2024002'
-        }
-      ]
-      setJuniorMembers(mockMembers)
+          {
+            id: '2',
+            firstName: 'Noah',
+            lastName: 'Williams',
+            dateOfBirth: new Date('2021-08-22'),
+            age: 3,
+            parentName: 'Lisa Williams',
+            parentPhone: '+1234567892',
+            parentEmail: 'lisa.williams@email.com',
+            emergencyContact: {
+              name: 'David Williams',
+              phone: '+1234567893',
+              relationship: 'Father'
+            },
+            pickupAuthority: ['Lisa Williams', 'David Williams'],
+            class: 'toddlers',
+            isActive: true,
+            registeredAt: new Date('2024-02-01'),
+            barcodeId: 'JC2024002'
+          }
+        ]
+        setJuniorMembers(mockMembers)
+      }
     } catch (error) {
       console.error('Error loading junior members:', error)
+      setJuniorMembers([])
     } finally {
       setLoading(false)
     }
@@ -170,32 +183,42 @@ export default function JuniorChurchPage() {
 
   const loadAttendanceRecords = async () => {
     try {
-      // Mock data for now - replace with actual API call
-      const mockAttendance: AttendanceRecord[] = [
-        {
-          id: '1',
-          juniorMemberId: '1',
-          date: new Date(),
-          dropoffTime: new Date(),
-          dropoffBy: 'Sarah Johnson',
-          status: 'dropped_off',
-          verifiedById: 'staff1'
-        },
-        {
-          id: '2',
-          juniorMemberId: '2',
-          date: new Date(),
-          dropoffTime: new Date(),
-          pickupTime: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours later
-          dropoffBy: 'Lisa Williams',
-          pickedUpBy: 'David Williams',
-          status: 'picked_up',
-          verifiedById: 'staff1'
-        }
-      ]
-      setAttendanceRecords(mockAttendance)
+      const today = new Date().toISOString().split('T')[0]
+      const response = await fetch(`/api/junior-church/attendance?date=${today}`)
+      const result = await response.json()
+      
+      if (result.success) {
+        setAttendanceRecords(result.data)
+      } else {
+        console.error('Failed to load attendance records:', result.message)
+        // Fallback to mock data for now
+        const mockAttendance: AttendanceRecord[] = [
+          {
+            id: '1',
+            juniorMemberId: '1',
+            date: new Date(),
+            dropoffTime: new Date(),
+            dropoffBy: 'Sarah Johnson',
+            status: 'dropped_off',
+            verifiedById: 'staff1'
+          },
+          {
+            id: '2',
+            juniorMemberId: '2',
+            date: new Date(),
+            dropoffTime: new Date(),
+            pickupTime: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours later
+            dropoffBy: 'Lisa Williams',
+            pickedUpBy: 'David Williams',
+            status: 'picked_up',
+            verifiedById: 'staff1'
+          }
+        ]
+        setAttendanceRecords(mockAttendance)
+      }
     } catch (error) {
       console.error('Error loading attendance records:', error)
+      setAttendanceRecords([])
     }
   }
 
@@ -244,28 +267,60 @@ export default function JuniorChurchPage() {
   }
 
   const handleSaveMember = async () => {
+    setLoading(true)
     try {
       const dateOfBirth = new Date(formData.dateOfBirth)
       const memberData = {
-        ...formData,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
         dateOfBirth,
-        age: calculateAge(dateOfBirth),
+        parentName: formData.parentName,
+        parentPhone: formData.parentPhone,
+        parentEmail: formData.parentEmail,
         emergencyContact: {
           name: formData.emergencyContactName,
           phone: formData.emergencyContactPhone,
           relationship: formData.emergencyContactRelationship
         },
-        pickupAuthority: formData.pickupAuthority.split(',').map(name => name.trim()).filter(name => name),
-        barcodeId: selectedMember?.barcodeId || generateBarcodeId(),
-        registeredAt: selectedMember?.registeredAt || new Date()
+        allergies: formData.allergies,
+        medicalNotes: formData.medicalNotes,
+        pickupAuthority: formData.pickupAuthority,
+        class: formData.class
       }
 
-      // Replace with actual API call
-      console.log('Saving junior member:', memberData)
-      setIsModalOpen(false)
-      loadJuniorMembers()
+      const url = isEditing 
+        ? '/api/junior-church/members' 
+        : '/api/junior-church/members'
+      
+      const method = isEditing ? 'PUT' : 'POST'
+      
+      if (isEditing && selectedMember) {
+        (memberData as any).id = selectedMember.id
+      }
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(memberData)
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        alert(result.message)
+        setIsModalOpen(false)
+        loadJuniorMembers()
+      } else {
+        alert('Error: ' + result.message)
+      }
     } catch (error) {
       console.error('Error saving junior member:', error)
+      alert('An error occurred while saving the member.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -283,29 +338,94 @@ export default function JuniorChurchPage() {
       r => r.juniorMemberId === member.id && new Date(r.date).toDateString() === today
     )
 
-    if (existingRecord && existingRecord.status === 'dropped_off') {
-      // This is a pickup
-      const pickupBy = prompt(`Pickup for ${member.firstName} ${member.lastName}. Enter name of person picking up:`)
-      if (pickupBy) {
-        if (!member.pickupAuthority.includes(pickupBy)) {
-          const confirmed = confirm(`${pickupBy} is not on the authorized pickup list. Continue anyway?`)
-          if (!confirmed) return
+    try {
+      if (existingRecord && existingRecord.status === 'dropped_off') {
+        // This is a pickup
+        const pickupBy = prompt(`Pickup for ${member.firstName} ${member.lastName}. Enter name of person picking up:`)
+        if (!pickupBy) return
+
+        const response = await fetch('/api/junior-church/attendance', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            barcodeId: barcodeInput.trim(),
+            action: 'pickup',
+            personName: pickupBy
+          })
+        })
+
+        const result = await response.json()
+
+        if (result.success) {
+          alert(`${member.firstName} ${member.lastName} checked out successfully!`)
+          if (result.wasOverride) {
+            alert('WARNING: This was an override pickup by an unauthorized person.')
+          }
+        } else if (result.requiresOverride) {
+          const confirmed = confirm(
+            `${result.message}\n\nAuthorized persons: ${result.authorizedPersons.join(', ')}\n\nDo you want to override and allow this pickup?`
+          )
+          if (confirmed) {
+            // Retry with override
+            const overrideResponse = await fetch('/api/junior-church/attendance', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                barcodeId: barcodeInput.trim(),
+                action: 'pickup',
+                personName: pickupBy,
+                override: true
+              })
+            })
+
+            const overrideResult = await overrideResponse.json()
+            if (overrideResult.success) {
+              alert(`${member.firstName} ${member.lastName} checked out with override!`)
+            } else {
+              alert('Failed to process override checkout: ' + overrideResult.message)
+            }
+          }
+        } else {
+          alert('Checkout failed: ' + result.message)
         }
-        
-        // Update record for pickup
-        console.log('Processing pickup for:', member.firstName, member.lastName)
-        setBarcodeInput('')
-        loadAttendanceRecords()
+      } else {
+        // This is a dropoff
+        const dropoffBy = prompt(`Drop-off for ${member.firstName} ${member.lastName}. Enter name of person dropping off:`)
+        if (!dropoffBy) return
+
+        const response = await fetch('/api/junior-church/attendance', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            barcodeId: barcodeInput.trim(),
+            action: 'dropoff',
+            personName: dropoffBy
+          })
+        })
+
+        const result = await response.json()
+
+        if (result.success) {
+          alert(`${member.firstName} ${member.lastName} checked in successfully!`)
+        } else {
+          alert('Check-in failed: ' + result.message)
+        }
       }
-    } else {
-      // This is a dropoff
-      const dropoffBy = prompt(`Drop-off for ${member.firstName} ${member.lastName}. Enter name of person dropping off:`)
-      if (dropoffBy) {
-        // Create new attendance record
-        console.log('Processing dropoff for:', member.firstName, member.lastName)
-        setBarcodeInput('')
-        loadAttendanceRecords()
-      }
+
+      setBarcodeInput('')
+      loadAttendanceRecords()
+    } catch (error) {
+      console.error('Error processing barcode check-in/out:', error)
+      alert('An error occurred while processing the request.')
     }
   }
 
@@ -436,6 +556,17 @@ export default function JuniorChurchPage() {
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
             <button
+              onClick={() => setActiveTab('live-dashboard')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'live-dashboard'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Activity className="w-4 h-4 inline mr-1" />
+              Live Dashboard
+            </button>
+            <button
               onClick={() => setActiveTab('members')}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'members'
@@ -456,6 +587,17 @@ export default function JuniorChurchPage() {
               Check-in/Check-out
             </button>
             <button
+              onClick={() => setActiveTab('admin-checkout')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'admin-checkout'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <UserCheck className="w-4 h-4 inline mr-1" />
+              Admin Checkout
+            </button>
+            <button
               onClick={() => setActiveTab('attendance')}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'attendance'
@@ -467,6 +609,17 @@ export default function JuniorChurchPage() {
             </button>
           </nav>
         </div>
+
+        {activeTab === 'live-dashboard' && (
+          <LiveDashboard
+            attendanceRecords={attendanceRecords}
+            juniorMembers={juniorMembers}
+            onRefresh={() => {
+              loadJuniorMembers()
+              loadAttendanceRecords()
+            }}
+          />
+        )}
 
         {activeTab === 'members' && (
           <>
@@ -625,6 +778,14 @@ export default function JuniorChurchPage() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {activeTab === 'admin-checkout' && (
+          <AdminCheckout
+            attendanceRecords={attendanceRecords}
+            juniorMembers={juniorMembers}
+            onCheckoutComplete={loadAttendanceRecords}
+          />
         )}
 
         {activeTab === 'attendance' && (

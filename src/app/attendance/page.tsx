@@ -22,7 +22,7 @@ import {
   XCircle,
   AlertCircle
 } from 'lucide-react'
-import { AttendanceRecord, Member, Event } from '@/types'
+import { AttendanceRecord, AttendanceRecordPopulated, Member, Event } from '@/types'
 import { formatDateConsistent, parseApiAttendanceRecord, parseApiMember, parseApiEvent } from '@/lib/utils'
 import { apiClient } from '@/lib/api-client'
 
@@ -32,14 +32,16 @@ const breadcrumbItems = [
 ]
 
 export default function AttendancePage() {
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([])
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecordPopulated[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [events, setEvents] = useState<Event[]>([])
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(null)
+  const [selectedEventId, setSelectedEventId] = useState<string>('all')
+  const [selectedRecord, setSelectedRecord] = useState<AttendanceRecordPopulated | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [view, setView] = useState<'all' | 'by-event'>('by-event')
   const [formData, setFormData] = useState({
     memberId: '',
     eventId: '',
@@ -60,10 +62,16 @@ export default function AttendancePage() {
     try {
       const response = await apiClient.getAttendanceRecords()
       if (response.success && response.data) {
-        const parsedRecords = Array.isArray(response.data) 
-          ? response.data.map(parseApiAttendanceRecord)
-          : []
-        setAttendanceRecords(parsedRecords)
+        // Use the raw data since it's already properly populated with member and event details
+        const records = Array.isArray(response.data) ? response.data : []
+        // Just normalize the ID field and parse dates
+        const normalizedRecords = records.map(record => ({
+          ...record,
+          id: record._id || record.id,
+          date: new Date(record.date),
+          checkedInAt: new Date(record.checkedInAt)
+        }))
+        setAttendanceRecords(normalizedRecords)
       }
     } catch (error) {
       console.error('Failed to load attendance records:', error)
@@ -100,22 +108,96 @@ export default function AttendancePage() {
     }
   }
 
-  const getMemberName = (memberId: string) => {
-    const member = members.find(m => m.id === memberId)
-    return member ? `${member.firstName} ${member.lastName}` : 'Unknown Member'
+  const getMemberName = (memberIdOrMember: string | any) => {
+    // If it's a populated object with member data
+    if (typeof memberIdOrMember === 'object' && memberIdOrMember?.firstName) {
+      return `${memberIdOrMember.firstName} ${memberIdOrMember.lastName}`
+    }
+    // If it's just an ID string, look it up in the members array
+    if (typeof memberIdOrMember === 'string') {
+      const member = members.find(m => m.id === memberIdOrMember)
+      return member ? `${member.firstName} ${member.lastName}` : 'Unknown Member'
+    }
+    return 'Unknown Member'
   }
 
-  const getEventName = (eventId: string) => {
-    const event = events.find(e => e.id === eventId)
-    return event ? event.name : 'Unknown Event'
+  const getEventName = (eventIdOrEvent: string | any) => {
+    // If it's a populated object with event data
+    if (typeof eventIdOrEvent === 'object' && eventIdOrEvent?.name) {
+      return eventIdOrEvent.name
+    }
+    // If it's just an ID string, look it up in the events array
+    if (typeof eventIdOrEvent === 'string') {
+      const event = events.find(e => e.id === eventIdOrEvent)
+      return event ? event.name : 'Unknown Event'
+    }
+    return 'Unknown Event'
+  }
+
+  const getEventDate = (eventIdOrEvent: string | any) => {
+    // If it's a populated object with event data
+    if (typeof eventIdOrEvent === 'object' && eventIdOrEvent?.date) {
+      return new Date(eventIdOrEvent.date)
+    }
+    // If it's just an ID string, look it up in the events array
+    if (typeof eventIdOrEvent === 'string') {
+      const event = events.find(e => e.id === eventIdOrEvent)
+      return event ? new Date(event.date) : new Date()
+    }
+    return new Date()
   }
 
   const filteredRecords = attendanceRecords.filter(record => {
     const memberName = getMemberName(record.memberId).toLowerCase()
     const eventName = getEventName(record.eventId).toLowerCase()
-    return memberName.includes(searchTerm.toLowerCase()) || 
-           eventName.includes(searchTerm.toLowerCase())
+    const matchesSearch = memberName.includes(searchTerm.toLowerCase()) || 
+                         eventName.includes(searchTerm.toLowerCase())
+    
+    // Handle both populated object and string ID for event filtering
+    const recordEventId = typeof record.eventId === 'object' && record.eventId && '_id' in record.eventId
+      ? record.eventId._id 
+      : typeof record.eventId === 'string' 
+        ? record.eventId 
+        : ''
+    const matchesEvent = selectedEventId === 'all' || recordEventId === selectedEventId
+    
+    return matchesSearch && matchesEvent
   })
+
+  // Group records by event for by-event view
+  const recordsByEvent = attendanceRecords.reduce((acc, record) => {
+    const eventId = typeof record.eventId === 'object' && record.eventId && '_id' in record.eventId
+      ? record.eventId._id 
+      : typeof record.eventId === 'string' 
+        ? record.eventId 
+        : ''
+    if (!acc[eventId]) {
+      acc[eventId] = []
+    }
+    acc[eventId].push(record)
+    return acc
+  }, {} as Record<string, any[]>)
+
+  // Calculate per-event statistics
+  const eventStats = Object.entries(recordsByEvent).map(([eventId, records]) => {
+    const eventName = getEventName(eventId)
+    const totalAttendees = records.length
+    const presentCount = records.filter(r => r.status === 'present').length
+    const absentCount = records.filter(r => r.status === 'absent').length
+    const excusedCount = records.filter(r => r.status === 'excused').length
+    const attendanceRate = totalAttendees > 0 ? Math.round((presentCount / totalAttendees) * 100) : 0
+    
+    return {
+      eventId,
+      eventName,
+      totalAttendees,
+      presentCount,
+      absentCount,
+      excusedCount,
+      attendanceRate,
+      records
+    }
+  }).sort((a, b) => b.totalAttendees - a.totalAttendees)
 
   const handleAddRecord = () => {
     setSelectedRecord(null)
@@ -131,12 +213,26 @@ export default function AttendancePage() {
     setIsModalOpen(true)
   }
 
-  const handleEditRecord = (record: AttendanceRecord) => {
+  const handleEditRecord = (record: AttendanceRecordPopulated) => {
     setSelectedRecord(record)
     setIsEditing(true)
+    
+    // Extract IDs safely from potentially populated objects
+    const memberId = typeof record.memberId === 'object' && record.memberId && '_id' in record.memberId
+      ? record.memberId._id 
+      : typeof record.memberId === 'string' 
+        ? record.memberId 
+        : ''
+    
+    const eventId = typeof record.eventId === 'object' && record.eventId && '_id' in record.eventId
+      ? record.eventId._id 
+      : typeof record.eventId === 'string' 
+        ? record.eventId 
+        : ''
+    
     setFormData({
-      memberId: record.memberId,
-      eventId: record.eventId,
+      memberId,
+      eventId,
       date: formatDateConsistent(record.date).split('T')[0],
       status: record.status,
       checkedInAt: record.checkedInAt ? new Date(record.checkedInAt).toTimeString().slice(0, 5) : '',
@@ -186,15 +282,17 @@ export default function AttendancePage() {
     }
   }
 
-  // Calculate stats
-  const totalRecords = attendanceRecords.length
-  const presentRecords = attendanceRecords.filter(r => r.status === 'present').length
-  const absentRecords = attendanceRecords.filter(r => r.status === 'absent').length
-  const excusedRecords = attendanceRecords.filter(r => r.status === 'excused').length
+  // Calculate stats based on current filter
+  const currentRecords = selectedEventId === 'all' ? attendanceRecords : 
+                        attendanceRecords.filter(r => r.eventId === selectedEventId)
+  const totalRecords = currentRecords.length
+  const presentRecords = currentRecords.filter(r => r.status === 'present').length
+  const absentRecords = currentRecords.filter(r => r.status === 'absent').length
+  const excusedRecords = currentRecords.filter(r => r.status === 'excused').length
   const attendanceRate = totalRecords > 0 ? Math.round((presentRecords / totalRecords) * 100) : 0
 
   // Recent attendance (last 7 days)
-  const recentRecords = attendanceRecords.filter(record => 
+  const recentRecords = currentRecords.filter(record => 
     record.date > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
   )
 
@@ -209,10 +307,35 @@ export default function AttendancePage() {
               <h1 className="text-2xl font-bold text-gray-900">Service Attendance</h1>
               <p className="text-gray-600">Track member attendance for church services and events.</p>
             </div>
-            <Button onClick={handleAddRecord}>
-              <Plus className="h-4 w-4 mr-2" />
-              Record Attendance
-            </Button>
+            <div className="flex items-center space-x-3">
+              {/* View Toggle */}
+              <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setView('by-event')}
+                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    view === 'by-event' 
+                      ? 'bg-white text-gray-900 shadow-sm' 
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  By Event
+                </button>
+                <button
+                  onClick={() => setView('all')}
+                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    view === 'all' 
+                      ? 'bg-white text-gray-900 shadow-sm' 
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  All Records
+                </button>
+              </div>
+              <Button onClick={handleAddRecord}>
+                <Plus className="h-4 w-4 mr-2" />
+                Record Attendance
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -306,6 +429,22 @@ export default function AttendancePage() {
                   className="pl-10"
                 />
               </div>
+              {view === 'all' && (
+                <div className="min-w-[200px]">
+                  <select
+                    value={selectedEventId}
+                    onChange={(e) => setSelectedEventId(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="all">All Events</option>
+                    {events.map(event => (
+                      <option key={event.id} value={event.id}>
+                        {event.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="flex space-x-2">
                 <Button variant="outline" size="sm">
                   Present ({presentRecords})
@@ -321,25 +460,170 @@ export default function AttendancePage() {
           </CardContent>
         </Card>
 
-        {/* Attendance Records Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Attendance Records ({filteredRecords.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Member</TableHead>
-                  <TableHead>Event</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Check-in Time</TableHead>
-                  <TableHead>Notes</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+        {/* Attendance Records */}
+        {view === 'by-event' ? (
+          /* By Event View */
+          <div className="space-y-6">
+            {eventStats.length > 0 ? (
+              eventStats.map((eventStat) => (
+                <Card key={eventStat.eventId}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="flex items-center">
+                          <Calendar className="h-5 w-5 mr-2" />
+                          {eventStat.eventName}
+                        </CardTitle>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {eventStat.totalAttendees} total attendees • {eventStat.attendanceRate}% attendance rate
+                        </p>
+                      </div>
+                      <div className="flex space-x-4 text-center">
+                        <div className="px-3 py-2 bg-green-50 rounded-lg">
+                          <p className="text-lg font-semibold text-green-700">{eventStat.presentCount}</p>
+                          <p className="text-xs text-green-600">Present</p>
+                        </div>
+                        <div className="px-3 py-2 bg-red-50 rounded-lg">
+                          <p className="text-lg font-semibold text-red-700">{eventStat.absentCount}</p>
+                          <p className="text-xs text-red-600">Absent</p>
+                        </div>
+                        <div className="px-3 py-2 bg-yellow-50 rounded-lg">
+                          <p className="text-lg font-semibold text-yellow-700">{eventStat.excusedCount}</p>
+                          <p className="text-xs text-yellow-600">Excused</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Member</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Check-in Time</TableHead>
+                          <TableHead>Notes</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {eventStat.records
+                          .filter(record => {
+                            const memberName = getMemberName(record.memberId).toLowerCase()
+                            return memberName.includes(searchTerm.toLowerCase())
+                          })
+                          .map((record) => (
+                          <TableRow key={record.id}>
+                            <TableCell>
+                              <div className="flex items-center space-x-3">
+                                <UserCheck className="h-4 w-4 text-gray-400" />
+                                <span className="font-medium text-gray-900">
+                                  {getMemberName(record.memberId)}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <Calendar className="h-4 w-4 text-gray-400" />
+                                <span className="text-sm text-gray-900">
+                                  {formatDateConsistent(record.date)}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  record.status === 'present'
+                                    ? 'bg-green-100 text-green-800'
+                                    : record.status === 'absent'
+                                    ? 'bg-red-100 text-red-800'
+                                    : 'bg-yellow-100 text-yellow-800'
+                                }`}
+                              >
+                                {record.status === 'present' && <CheckCircle className="h-3 w-3 mr-1" />}
+                                {record.status === 'absent' && <XCircle className="h-3 w-3 mr-1" />}
+                                {record.status === 'excused' && <AlertCircle className="h-3 w-3 mr-1" />}
+                                {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <Clock className="h-4 w-4 text-gray-400" />
+                                <span className="text-sm text-gray-900">
+                                  {record.checkedInAt.toLocaleTimeString([], { 
+                                    hour: '2-digit', 
+                                    minute: '2-digit' 
+                                  })}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm text-gray-900">
+                                {record.notes || '-'}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex space-x-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditRecord(record)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteRecord(record.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No attendance records found</h3>
+                  <p className="text-gray-600">Start by recording attendance for your events.</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        ) : (
+          /* All Records View */
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                Attendance Records ({filteredRecords.length})
+                {selectedEventId !== 'all' && (
+                  <span className="ml-2 text-sm font-normal text-gray-600">
+                    - {getEventName(selectedEventId)}
+                  </span>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Member</TableHead>
+                    <TableHead>Event</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Check-in Time</TableHead>
+                    <TableHead>Notes</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                 {filteredRecords.map((record) => (
                   <TableRow key={record.id}>
                     <TableCell>
@@ -357,9 +641,10 @@ export default function AttendancePage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
-                        <Calendar className="h-4 w-4 text-gray-400" />                      <span className="text-sm text-gray-900">
-                        {formatDateConsistent(record.date)}
-                      </span>
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        <span className="text-sm text-gray-900">
+                          {formatDateConsistent(record.date)}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -418,6 +703,7 @@ export default function AttendancePage() {
             </Table>
           </CardContent>
         </Card>
+        )}
 
         {/* Add/Edit Attendance Modal */}
         {isModalOpen && (

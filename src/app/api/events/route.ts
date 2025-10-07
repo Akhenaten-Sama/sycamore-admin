@@ -14,6 +14,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search')
     const upcoming = searchParams.get('upcoming')
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '20')
+    
+    // Validate pagination parameters
+    const validPage = Math.max(1, page)
+    const validLimit = Math.min(Math.max(1, limit), 100) // Max 100 items per page for admin
 
     const query: any = {}
 
@@ -32,18 +38,28 @@ export async function GET(request: NextRequest) {
     const baseEvents = await Event.find(query)
       .sort({ date: 1 })
 
-    // Generate recurring event instances
+    // Generate recurring event instances (limited for performance)
     const allEvents = []
     const currentDate = new Date()
     const endDate = new Date()
-    endDate.setDate(endDate.getDate() + 365) // Generate events for next year
+    
+    // For admin dashboard, show more events but still limit to prevent performance issues
+    if (upcoming === 'true') {
+      endDate.setDate(endDate.getDate() + 180) // 6 months for upcoming events
+    } else {
+      endDate.setDate(endDate.getDate() + 90) // 3 months for all events view
+    }
 
     for (const event of baseEvents) {
       if (event.isRecurring && event.recurringType) {
         // Add the original event
-        allEvents.push(event)
+        allEvents.push({
+          ...event.toObject(),
+          isRecurringInstance: false,
+          originalEventId: event._id
+        })
         
-        // Generate recurring instances
+        // Generate limited recurring instances
         const instances = generateRecurringEvents(event, currentDate, endDate)
         allEvents.push(...instances)
       } else {
@@ -59,10 +75,24 @@ export async function GET(request: NextRequest) {
       ? allEvents.filter(event => new Date(event.date) >= currentDate)
       : allEvents
 
+    // Calculate pagination
+    const totalEvents = filteredEvents.length
+    const totalPages = Math.ceil(totalEvents / validLimit)
+    const startIndex = (validPage - 1) * validLimit
+    const endIndex = startIndex + validLimit
+    const paginatedEvents = filteredEvents.slice(startIndex, endIndex)
+
     return corsResponse({
       success: true,
-      data: filteredEvents,
-      total: filteredEvents.length
+      data: paginatedEvents,
+      pagination: {
+        page: validPage,
+        limit: validLimit,
+        total: totalEvents,
+        totalPages: totalPages,
+        hasNextPage: validPage < totalPages,
+        hasPreviousPage: validPage > 1
+      }
     }, request, 200)
   } catch (error) {
     console.error('Error fetching events:', error)
@@ -77,22 +107,25 @@ export async function GET(request: NextRequest) {
 function generateRecurringEvents(baseEvent: any, startDate: Date, endDate: Date) {
   const events = []
   const eventDate = new Date(baseEvent.date)
+  const maxInstances = 24 // Allow more instances for admin dashboard
   
   if (baseEvent.recurringType === 'weekly') {
     // Generate weekly recurring events
     let nextDate = new Date(eventDate)
     nextDate.setDate(nextDate.getDate() + 7)
+    let instanceCount = 0
     
-    while (nextDate <= endDate) {
+    while (nextDate <= endDate && instanceCount < maxInstances) {
       if (nextDate >= startDate) {
         const recurringEvent = {
           ...baseEvent.toObject(),
-          _id: undefined, // Remove original ID
+          _id: `${baseEvent._id}_${nextDate.toISOString().split('T')[0]}`, // Generate consistent ID
           date: new Date(nextDate),
           isRecurringInstance: true,
           originalEventId: baseEvent._id
         }
         events.push(recurringEvent)
+        instanceCount++
       }
       nextDate.setDate(nextDate.getDate() + 7)
     }
@@ -100,17 +133,19 @@ function generateRecurringEvents(baseEvent: any, startDate: Date, endDate: Date)
     // Generate monthly recurring events
     let nextDate = new Date(eventDate)
     nextDate.setMonth(nextDate.getMonth() + 1)
+    let instanceCount = 0
     
-    while (nextDate <= endDate) {
+    while (nextDate <= endDate && instanceCount < maxInstances) {
       if (nextDate >= startDate) {
         const recurringEvent = {
           ...baseEvent.toObject(),
-          _id: undefined,
+          _id: `${baseEvent._id}_${nextDate.toISOString().split('T')[0]}`,
           date: new Date(nextDate),
           isRecurringInstance: true,
           originalEventId: baseEvent._id
         }
         events.push(recurringEvent)
+        instanceCount++
       }
       nextDate.setMonth(nextDate.getMonth() + 1)
     }
@@ -118,17 +153,19 @@ function generateRecurringEvents(baseEvent: any, startDate: Date, endDate: Date)
     // Generate yearly recurring events
     let nextDate = new Date(eventDate)
     nextDate.setFullYear(nextDate.getFullYear() + 1)
+    let instanceCount = 0
     
-    while (nextDate <= endDate) {
+    while (nextDate <= endDate && instanceCount < 6) { // Limit yearly to 6 instances
       if (nextDate >= startDate) {
         const recurringEvent = {
           ...baseEvent.toObject(),
-          _id: undefined,
+          _id: `${baseEvent._id}_${nextDate.toISOString().split('T')[0]}`,
           date: new Date(nextDate),
           isRecurringInstance: true,
           originalEventId: baseEvent._id
         }
         events.push(recurringEvent)
+        instanceCount++
       }
       nextDate.setFullYear(nextDate.getFullYear() + 1)
     }

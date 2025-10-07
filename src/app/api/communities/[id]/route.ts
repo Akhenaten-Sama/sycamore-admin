@@ -36,7 +36,18 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     await connectDB()
     
     const { id } = await params
+    console.log('Community PUT request - ID:', id)
+    
+    // Validate the ID
+    if (!id || id === 'undefined' || !id.match(/^[0-9a-fA-F]{24}$/)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid community ID provided' },
+        { status: 400 }
+      )
+    }
+    
     const body = await request.json()
+    console.log('Community PUT request - Body:', body)
     
     const community = await Community.findById(id)
     if (!community) {
@@ -53,6 +64,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (body.leaderId) community.leaderId = body.leaderId
     if (body.members) community.members = body.members
     if (body.isActive !== undefined) community.isActive = body.isActive
+    if (body.isPrivate !== undefined) community.isPrivate = body.isPrivate
+    if (body.inviteOnly !== undefined) community.inviteOnly = body.inviteOnly
     if (body.meetingSchedule !== undefined) community.meetingSchedule = body.meetingSchedule
 
     const updatedCommunity = await community.save()

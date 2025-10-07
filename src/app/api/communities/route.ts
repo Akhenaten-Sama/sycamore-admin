@@ -95,7 +95,11 @@ export async function POST(request: NextRequest) {
       leaderId: body.leaderId,
       members: body.members || [],
       isActive: body.isActive !== undefined ? body.isActive : true,
-      meetingSchedule: body.meetingSchedule
+      isPrivate: body.isPrivate !== undefined ? body.isPrivate : false,
+      inviteOnly: body.inviteOnly !== undefined ? body.inviteOnly : false,
+      meetingSchedule: body.meetingSchedule,
+      joinRequests: [],
+      invitedMembers: []
     })
 
     const savedCommunity = await newCommunity.save()

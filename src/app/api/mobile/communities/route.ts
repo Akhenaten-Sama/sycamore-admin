@@ -49,35 +49,55 @@ export async function GET(request: NextRequest) {
       query.members = memberData._id
     } else if (type === 'available') {
       query.members = { $ne: memberData._id }
+      // For available communities, only show public ones or ones user is invited to
+      query.$or = [
+        { isPrivate: false },
+        { invitedMembers: memberData._id }
+      ]
     }
     
     // Get communities
     const communities = await Community.find(query)
       .populate('leaderId', 'firstName lastName avatar')
       .populate('members', 'firstName lastName avatar')
+      .populate('joinRequests', 'firstName lastName avatar')
+      .populate('invitedMembers', 'firstName lastName avatar')
       .sort({ name: 1 })
     
     // Transform for mobile response
-    const mobileCommunities = communities.map(community => ({
-      id: community._id,
-      name: community.name,
-      description: community.description,
-      type: community.type,
-      leader: {
-        id: (community as any).leaderId._id,
-        name: `${(community as any).leaderId.firstName} ${(community as any).leaderId.lastName}`,
-        avatar: (community as any).leaderId.avatar
-      },
-      memberCount: community.members.length,
-      isJoined: community.members.some((m: any) => m._id.toString() === memberData._id.toString()),
-      isLeader: (community as any).leaderId._id.toString() === memberData._id.toString(),
-      meetingSchedule: community.meetingSchedule,
-      recentMembers: community.members.slice(0, 3).map((member: any) => ({
-        id: member._id,
-        name: `${member.firstName} ${member.lastName}`,
-        avatar: member.avatar
-      }))
-    }))
+    const mobileCommunities = communities.map(community => {
+      const isJoined = community.members.some((m: any) => m._id.toString() === memberData._id.toString())
+      const isLeader = (community as any).leaderId._id.toString() === memberData._id.toString()
+      const isInvited = community.invitedMembers?.some((m: any) => m._id.toString() === memberData._id.toString())
+      const hasJoinRequest = community.joinRequests?.some((m: any) => m._id.toString() === memberData._id.toString())
+      
+      return {
+        id: community._id,
+        name: community.name,
+        description: community.description,
+        type: community.type,
+        isPrivate: community.isPrivate,
+        inviteOnly: community.inviteOnly,
+        leader: {
+          id: (community as any).leaderId._id,
+          name: `${(community as any).leaderId.firstName} ${(community as any).leaderId.lastName}`,
+          avatar: (community as any).leaderId.avatar
+        },
+        memberCount: community.members.length,
+        isJoined,
+        isLeader,
+        isInvited,
+        hasJoinRequest,
+        canJoin: !isJoined && (!community.isPrivate || isInvited || !community.inviteOnly),
+        meetingSchedule: community.meetingSchedule,
+        recentMembers: community.members.slice(0, 3).map((member: any) => ({
+          id: member._id,
+          name: `${member.firstName} ${member.lastName}`,
+          avatar: member.avatar
+        })),
+        pendingJoinRequests: isLeader ? community.joinRequests?.length || 0 : 0
+      }
+    })
 
     return NextResponse.json({
       success: true,
@@ -125,9 +145,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!['join', 'leave'].includes(action)) {
+    if (!['join', 'leave', 'request-join', 'cancel-request'].includes(action)) {
       return NextResponse.json(
-        { message: 'Action must be either "join" or "leave"' },
+        { message: 'Action must be "join", "leave", "request-join", or "cancel-request"' },
         { status: 400 }
       )
     }
@@ -150,6 +170,8 @@ export async function POST(request: NextRequest) {
     
     const memberIdStr = memberData._id.toString()
     const isMember = community.members.some((m: any) => m.toString() === memberIdStr)
+    const isInvited = community.invitedMembers?.some((m: any) => m.toString() === memberIdStr)
+    const hasJoinRequest = community.joinRequests?.some((m: any) => m.toString() === memberIdStr)
     
     if (action === 'join') {
       if (isMember) {
@@ -159,8 +181,22 @@ export async function POST(request: NextRequest) {
         )
       }
       
+      // Check if community requires invitation
+      if (community.isPrivate && community.inviteOnly && !isInvited) {
+        return NextResponse.json(
+          { message: 'This community is invite-only. You need an invitation to join.' },
+          { status: 403 }
+        )
+      }
+      
       // Add member to community
       community.members.push(memberData._id)
+      
+      // Remove from invited members if they were invited
+      if (isInvited) {
+        community.invitedMembers = community.invitedMembers?.filter((m: any) => m.toString() !== memberIdStr) || []
+      }
+      
       await community.save()
       
       // Update member's community list
@@ -175,6 +211,65 @@ export async function POST(request: NextRequest) {
           communityId: community._id,
           communityName: community.name,
           memberCount: community.members.length
+        }
+      })
+      
+    } else if (action === 'request-join') {
+      if (isMember) {
+        return NextResponse.json(
+          { message: 'Already a member of this community' },
+          { status: 400 }
+        )
+      }
+      
+      if (hasJoinRequest) {
+        return NextResponse.json(
+          { message: 'Join request already pending' },
+          { status: 400 }
+        )
+      }
+      
+      if (!community.isPrivate) {
+        return NextResponse.json(
+          { message: 'This community allows direct joining' },
+          { status: 400 }
+        )
+      }
+      
+      // Add to join requests
+      community.joinRequests = community.joinRequests || []
+      community.joinRequests.push(memberData._id)
+      await community.save()
+      
+      return NextResponse.json({
+        success: true,
+        message: `Join request sent to ${community.name}`,
+        data: {
+          communityId: community._id,
+          communityName: community.name,
+          status: 'pending'
+        }
+      })
+      
+    } else if (action === 'cancel-request') {
+      if (!hasJoinRequest) {
+        return NextResponse.json(
+          { message: 'No pending join request found' },
+          { status: 400 }
+        )
+      }
+      
+      // Remove from join requests
+      community.joinRequests = community.joinRequests?.filter((m: any) => m.toString() !== memberIdStr) || []
+      await community.save()
+      
+      return NextResponse.json({
+        success: true,
+        message: `Join request cancelled for ${community.name}`,
+        data: {
+          communityId: community._id,
+          communityName: community.name,
+          status: 'cancelled'
         }
       })
       

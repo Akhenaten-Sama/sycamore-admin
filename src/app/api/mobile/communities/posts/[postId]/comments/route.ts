@@ -31,16 +31,18 @@ export async function POST(
       );
     }
 
-    // Create new comment
+    // Create new comment using unified comments collection
     const newComment = {
-      postId: new ObjectId(postId),
-      authorId: new ObjectId(authorId),
       content,
+      authorId: new ObjectId(authorId),
+      targetType: 'community_post',
+      targetId: new ObjectId(postId),
+      isApproved: true, // Auto-approve community comments
       createdAt: new Date(),
       updatedAt: new Date()
     };
 
-    const result = await db.collection('communityPostComments').insertOne(newComment);
+    const result = await db.collection('comments').insertOne(newComment);
 
     // Update post comment count
     await db.collection('communityPosts').updateOne(
@@ -77,6 +79,69 @@ export async function POST(
     console.error('Error creating comment:', error);
     return NextResponse.json(
       { success: false, message: 'Failed to create comment' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ postId: string }> }
+) {
+  try {
+    const mongoose = await connectDB();
+    const db = mongoose.connection.db;
+    const { postId } = await params;
+
+    // Verify post exists
+    const post = await db.collection('communityPosts').findOne({
+      _id: new ObjectId(postId)
+    });
+
+    if (!post) {
+      return NextResponse.json(
+        { success: false, message: 'Post not found' },
+        { status: 404 }
+      );
+    }
+
+    // Get comments for this post
+    const comments = await db.collection('comments').find({
+      targetType: 'community_post',
+      targetId: new ObjectId(postId)
+    }).sort({ createdAt: 1 }).toArray();
+
+    // Enrich comments with author details
+    const enrichedComments = await Promise.all(
+      comments.map(async (comment: any) => {
+        const author = await db.collection('members').findOne({
+          _id: new ObjectId(comment.authorId)
+        });
+        return {
+          id: comment._id.toString(),
+          content: comment.content,
+          authorId: comment.authorId.toString(),
+          postId: postId,
+          author: {
+            id: author?._id.toString(),
+            name: `${author?.firstName} ${author?.lastName}`,
+            avatar: author?.profilePicture || null
+          },
+          createdAt: comment.createdAt,
+          isApproved: comment.isApproved !== false
+        };
+      })
+    );
+
+    return NextResponse.json({
+      success: true,
+      data: enrichedComments
+    });
+
+  } catch (error) {
+    console.error('Error fetching comments:', error);
+    return NextResponse.json(
+      { success: false, message: 'Failed to fetch comments' },
       { status: 500 }
     );
   }

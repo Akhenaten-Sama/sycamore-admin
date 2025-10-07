@@ -61,6 +61,7 @@ const userSchema = new Schema<IUser>({
 
 // Member Schema
 export interface IMember extends Document {
+  title?: string
   firstName: string
   lastName: string
   email: string
@@ -75,6 +76,8 @@ export interface IMember extends Document {
   dateOfBirth?: Date
   weddingAnniversary?: Date
   maritalStatus: 'single' | 'married' | 'divorced'
+  yearsAttending?: string
+  location?: 'lagos' | 'ibadan'
   emergencyContact?: {
     name: string
     phone: string
@@ -101,6 +104,7 @@ export interface IMember extends Document {
 }
 
 const memberSchema = new Schema<IMember>({
+  title: { type: String },
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
   email: { type: String, required: true, unique: true },
@@ -118,6 +122,11 @@ const memberSchema = new Schema<IMember>({
     type: String, 
     enum: ['single', 'married', 'divorced'], 
     default: 'single' 
+  },
+  yearsAttending: { type: String },
+  location: { 
+    type: String, 
+    enum: ['lagos', 'ibadan']
   },
   emergencyContact: {
     name: { type: String },
@@ -174,6 +183,16 @@ export interface IEvent extends Document {
   isRecurring: boolean
   recurringType?: 'weekly' | 'monthly' | 'yearly'
   bannerImage?: string
+  type?: 'service' | 'meeting' | 'conference' | 'social' | 'other'
+  isLive?: boolean
+  streamUrl?: string
+  sermonChallenges?: Array<{
+    question: string
+    type: 'multiple_choice' | 'text' | 'boolean'
+    options?: string[]
+    required?: boolean
+  }>
+  allowSelfAttendance?: boolean
 }
 
 const eventSchema = new Schema<IEvent>({
@@ -188,7 +207,25 @@ const eventSchema = new Schema<IEvent>({
     type: String, 
     enum: ['weekly', 'monthly', 'yearly'] 
   },
-  bannerImage: { type: String }
+  bannerImage: { type: String },
+  type: { 
+    type: String, 
+    enum: ['service', 'meeting', 'conference', 'social', 'other'],
+    default: 'service'
+  },
+  isLive: { type: Boolean, default: false },
+  streamUrl: { type: String },
+  sermonChallenges: [{
+    question: { type: String, required: true },
+    type: { 
+      type: String, 
+      enum: ['multiple_choice', 'text', 'boolean'],
+      default: 'text'
+    },
+    options: [{ type: String }],
+    required: { type: Boolean, default: false }
+  }],
+  allowSelfAttendance: { type: Boolean, default: true }
 }, {
   timestamps: true
 })
@@ -247,6 +284,7 @@ const anniversarySchema = new Schema<IAnniversary>({
 export interface IAttendanceRecord extends Document {
   memberId: mongoose.Types.ObjectId
   eventId: mongoose.Types.ObjectId
+  childId?: mongoose.Types.ObjectId
   date: Date
   status: 'present' | 'absent' | 'excused'
   checkedInAt: Date
@@ -256,6 +294,7 @@ export interface IAttendanceRecord extends Document {
 const attendanceRecordSchema = new Schema<IAttendanceRecord>({
   memberId: { type: Schema.Types.ObjectId, ref: 'Member', required: true },
   eventId: { type: Schema.Types.ObjectId, ref: 'Event', required: true },
+  childId: { type: Schema.Types.ObjectId, ref: 'ChildWard' },
   date: { type: Date, required: true },
   status: { 
     type: String, 
@@ -313,7 +352,13 @@ export interface ICommunity extends Document {
   leaderId: mongoose.Types.ObjectId
   members: mongoose.Types.ObjectId[]
   isActive: boolean
+  isPrivate: boolean
+  inviteOnly: boolean
+  coverImage?: string
+  category?: string
   meetingSchedule?: string
+  joinRequests?: mongoose.Types.ObjectId[]
+  invitedMembers?: mongoose.Types.ObjectId[]
 }
 
 const communitySchema = new Schema<ICommunity>({
@@ -327,7 +372,13 @@ const communitySchema = new Schema<ICommunity>({
   leaderId: { type: Schema.Types.ObjectId, ref: 'Member', required: true },
   members: [{ type: Schema.Types.ObjectId, ref: 'Member' }],
   isActive: { type: Boolean, default: true },
-  meetingSchedule: { type: String }
+  isPrivate: { type: Boolean, default: false },
+  inviteOnly: { type: Boolean, default: false },
+  coverImage: { type: String },
+  category: { type: String },
+  meetingSchedule: { type: String },
+  joinRequests: [{ type: Schema.Types.ObjectId, ref: 'Member' }],
+  invitedMembers: [{ type: Schema.Types.ObjectId, ref: 'Member' }]
 }, {
   timestamps: true
 })
@@ -363,7 +414,7 @@ const galleryImageSchema = new Schema<IGalleryImage>({
 export interface IComment extends Document {
   content: string
   authorId: mongoose.Types.ObjectId
-  targetType: 'event' | 'blog' | 'gallery' | 'announcement'
+  targetType: 'event' | 'blog' | 'gallery' | 'announcement' | 'community_post'
   targetId: mongoose.Types.ObjectId
   parentCommentId?: mongoose.Types.ObjectId
   isApproved: boolean
@@ -374,7 +425,7 @@ const commentSchema = new Schema<IComment>({
   authorId: { type: Schema.Types.ObjectId, ref: 'Member', required: true },
   targetType: { 
     type: String, 
-    enum: ['event', 'blog', 'gallery', 'announcement'], 
+    enum: ['event', 'blog', 'gallery', 'announcement', 'community_post'], 
     required: true 
   },
   targetId: { type: Schema.Types.ObjectId, required: true },
@@ -583,6 +634,45 @@ const formSchema = new Schema<IForm>({
   timestamps: true
 })
 
+// Child/Ward Schema for family member management
+export interface IChildWard extends Document {
+  firstName: string
+  lastName: string
+  dateOfBirth: Date
+  parentId: mongoose.Types.ObjectId
+  relationship: 'child' | 'ward' | 'dependent'
+  isActive: boolean
+  specialNeeds?: string
+  allergies?: string[]
+  emergencyContact?: {
+    name: string
+    phone: string
+    relationship: string
+  }
+}
+
+const childWardSchema = new Schema<IChildWard>({
+  firstName: { type: String, required: true },
+  lastName: { type: String, required: true },
+  dateOfBirth: { type: Date, required: true },
+  parentId: { type: Schema.Types.ObjectId, ref: 'Member', required: true },
+  relationship: { 
+    type: String, 
+    enum: ['child', 'ward', 'dependent'],
+    default: 'child'
+  },
+  isActive: { type: Boolean, default: true },
+  specialNeeds: { type: String },
+  allergies: [{ type: String }],
+  emergencyContact: {
+    name: { type: String },
+    phone: { type: String },
+    relationship: { type: String }
+  }
+}, {
+  timestamps: true
+})
+
 // Export models
 export const Role: Model<IRole> = mongoose.models.Role || mongoose.model<IRole>('Role', roleSchema)
 export const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', userSchema)
@@ -603,3 +693,89 @@ export const Giving: Model<IGiving> = mongoose.models.Giving || mongoose.model<I
 export const RequestForm: Model<IRequestForm> = mongoose.models.RequestForm || mongoose.model<IRequestForm>('RequestForm', requestFormSchema)
 export const RequestSubmission: Model<IRequestSubmission> = mongoose.models.RequestSubmission || mongoose.model<IRequestSubmission>('RequestSubmission', requestSubmissionSchema)
 export const Form: Model<IForm> = mongoose.models.Form || mongoose.model<IForm>('Form', formSchema)
+export const ChildWard: Model<IChildWard> = mongoose.models.ChildWard || mongoose.model<IChildWard>('ChildWard', childWardSchema)
+
+// Junior Church Member Schema
+export interface IJuniorMember extends Document {
+  firstName: string
+  lastName: string
+  dateOfBirth: Date
+  age: number
+  parentName: string
+  parentPhone: string
+  parentEmail: string
+  emergencyContact: {
+    name: string
+    phone: string
+    relationship: string
+  }
+  allergies?: string
+  medicalNotes?: string
+  pickupAuthority: string[] // Array of authorized pickup persons
+  class: 'nursery' | 'toddlers' | 'preschool' | 'elementary' | 'teens'
+  isActive: boolean
+  registeredAt: Date
+  barcodeId: string // Unique barcode for dropoff/pickup
+}
+
+const juniorMemberSchema = new Schema<IJuniorMember>({
+  firstName: { type: String, required: true },
+  lastName: { type: String, required: true },
+  dateOfBirth: { type: Date, required: true },
+  age: { type: Number, required: true },
+  parentName: { type: String, required: true },
+  parentPhone: { type: String, required: true },
+  parentEmail: { type: String },
+  emergencyContact: {
+    name: { type: String, required: true },
+    phone: { type: String, required: true },
+    relationship: { type: String, required: true }
+  },
+  allergies: { type: String },
+  medicalNotes: { type: String },
+  pickupAuthority: [{ type: String, required: true }],
+  class: { 
+    type: String, 
+    enum: ['nursery', 'toddlers', 'preschool', 'elementary', 'teens'], 
+    required: true 
+  },
+  isActive: { type: Boolean, default: true },
+  registeredAt: { type: Date, default: Date.now },
+  barcodeId: { type: String, required: true, unique: true }
+}, {
+  timestamps: true
+})
+
+// Junior Church Attendance Schema
+export interface IJuniorAttendance extends Document {
+  juniorMemberId: mongoose.Types.ObjectId
+  date: Date
+  dropoffTime?: Date
+  pickupTime?: Date
+  dropoffBy: string // Name of person dropping off
+  pickedUpBy?: string // Name of person picking up
+  status: 'dropped_off' | 'picked_up' | 'no_show'
+  notes?: string
+  verifiedById: mongoose.Types.ObjectId // Staff member who verified
+}
+
+const juniorAttendanceSchema = new Schema<IJuniorAttendance>({
+  juniorMemberId: { type: Schema.Types.ObjectId, ref: 'JuniorMember', required: true },
+  date: { type: Date, required: true },
+  dropoffTime: { type: Date },
+  pickupTime: { type: Date },
+  dropoffBy: { type: String, required: true },
+  pickedUpBy: { type: String },
+  status: { 
+    type: String, 
+    enum: ['dropped_off', 'picked_up', 'no_show'], 
+    required: true 
+  },
+  notes: { type: String },
+  verifiedById: { type: Schema.Types.ObjectId, ref: 'User', required: true }
+}, {
+  timestamps: true
+})
+
+export const JuniorMember: Model<IJuniorMember> = mongoose.models.JuniorMember || mongoose.model<IJuniorMember>('JuniorMember', juniorMemberSchema)
+export const JuniorAttendance: Model<IJuniorAttendance> = mongoose.models.JuniorAttendance || mongoose.model<IJuniorAttendance>('JuniorAttendance', juniorAttendanceSchema)

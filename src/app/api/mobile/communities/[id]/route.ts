@@ -44,15 +44,46 @@ export async function GET(
       communityId: new ObjectId(communityId)
     }).sort({ createdAt: -1 }).limit(20).toArray();
 
-    // Enrich posts with author details
+    // Enrich posts with author details and comments
     const enrichedPosts = await Promise.all(
       posts.map(async (post: any) => {
         const author = await db.collection('members').findOne({
           _id: new ObjectId(post.authorId)
         });
+
+        // Get comments for this post
+        const comments = await db.collection('comments').find({
+          targetType: 'community_post',
+          targetId: new ObjectId(post._id)
+        }).sort({ createdAt: 1 }).toArray();
+
+        // Enrich comments with author details
+        const enrichedComments = await Promise.all(
+          comments.map(async (comment: any) => {
+            const commentAuthor = await db.collection('members').findOne({
+              _id: new ObjectId(comment.authorId)
+            });
+            return {
+              id: comment._id.toString(),
+              content: comment.content,
+              authorId: comment.authorId.toString(),
+              author: {
+                id: commentAuthor?._id.toString(),
+                name: `${commentAuthor?.firstName} ${commentAuthor?.lastName}`,
+                avatar: commentAuthor?.profilePicture || null
+              },
+              createdAt: comment.createdAt,
+              likes: comment.likes || [],
+              isApproved: comment.isApproved !== false // Default to true if not set
+            };
+          })
+        );
+
         return {
           ...post,
           id: post._id.toString(),
+          comments: enrichedComments,
+          commentCount: enrichedComments.length,
           author: {
             id: author?._id.toString(),
             name: `${author?.firstName} ${author?.lastName}`,

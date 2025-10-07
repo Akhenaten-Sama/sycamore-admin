@@ -93,7 +93,11 @@ export interface Community {
   leaderId: string
   members: string[]
   isActive: boolean
+  isPrivate: boolean
+  inviteOnly: boolean
   meetingSchedule?: string
+  joinRequests?: string[]
+  invitedMembers?: string[]
   createdAt: Date
   updatedAt: Date
 }
@@ -107,7 +111,11 @@ export interface CommunityPopulated {
   leaderId: Member
   members: Member[]
   isActive: boolean
+  isPrivate: boolean
+  inviteOnly: boolean
   meetingSchedule?: string
+  joinRequests?: Member[]
+  invitedMembers?: Member[]
   createdAt: Date
   updatedAt: Date
 }
@@ -305,6 +313,17 @@ export interface AttendanceRecord {
   id: string
   memberId: string
   eventId: string
+  date: Date
+  status: 'present' | 'absent' | 'excused'
+  checkedInAt: Date
+  notes?: string
+}
+
+// Populated version for API responses
+export interface AttendanceRecordPopulated {
+  id: string
+  memberId: Member | string | { _id: string; firstName: string; lastName: string }
+  eventId: Event | string | { _id: string; name: string; date: Date }
   date: Date
   status: 'present' | 'absent' | 'excused'
   checkedInAt: Date

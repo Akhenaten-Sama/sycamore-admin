@@ -17,26 +17,31 @@ export async function POST(request: NextRequest) {
     await connectDB()
     
     const { 
+      title,
       firstName, 
       lastName, 
       email, 
       phone, 
       password,
       dateOfBirth,
-      maritalStatus = 'single'
+      maritalStatus = 'single',
+      yearsAttending,
+      location
     } = await request.json()
 
     console.log('📱 Mobile registration attempt:', { 
       email, 
       firstName, 
       lastName, 
-      phone 
+      phone,
+      yearsAttending,
+      location
     })
 
     // Validate required fields
-    if (!firstName || !lastName || !email || !phone || !password) {
+    if (!firstName || !lastName || !email || !phone || !password || !yearsAttending || !location) {
       return corsResponse(
-        { message: 'All fields are required' },
+        { message: 'All required fields must be provided' },
         request,
         400
       )
@@ -78,15 +83,18 @@ export async function POST(request: NextRequest) {
 
     // Create member record
     const member = new Member({
+      title,
       firstName,
       lastName,
       email: email.toLowerCase(),
       phone,
       dateJoined: new Date(),
-      isFirstTimer: true,
+      isFirstTimer: yearsAttending === 'first_timer',
       isTeamLead: false,
       isAdmin: false,
       maritalStatus,
+      yearsAttending,
+      location,
       dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
       communityIds: [],
       attendanceStreak: 0,

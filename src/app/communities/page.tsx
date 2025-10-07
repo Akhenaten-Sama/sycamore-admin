@@ -24,6 +24,7 @@ import {
 import { Community, CommunityPopulated, Member } from '@/types'
 import { formatDateConsistent } from '@/lib/utils'
 import { apiClient } from '@/lib/api-client'
+import { CommunityManagement } from '@/components/CommunityManagement'
 
 const breadcrumbItems = [
   { label: 'Dashboard', href: '/dashboard' },
@@ -44,6 +45,7 @@ export default function CommunitiesPage() {
   const [typeFilter, setTypeFilter] = useState('')
   const [selectedCommunity, setSelectedCommunity] = useState<CommunityPopulated | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isManagementOpen, setIsManagementOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -52,7 +54,9 @@ export default function CommunitiesPage() {
     type: 'team' as Community['type'],
     leaderId: '',
     meetingSchedule: '',
-    isActive: true
+    isActive: true,
+    isPrivate: false,
+    inviteOnly: false
   })
 
   useEffect(() => {
@@ -102,21 +106,26 @@ export default function CommunitiesPage() {
       type: 'team',
       leaderId: '',
       meetingSchedule: '',
-      isActive: true
+      isActive: true,
+      isPrivate: false,
+      inviteOnly: false
     })
     setIsModalOpen(true)
   }
 
   const handleEditCommunity = (community: CommunityPopulated) => {
+    console.log('Editing community:', community)
     setSelectedCommunity(community)
     setIsEditing(true)
     setFormData({
       name: community.name,
       description: community.description,
       type: community.type,
-      leaderId: community.leaderId?.id || '',
+      leaderId: (community.leaderId as any)?._id || (community.leaderId as any)?.id || '',
       meetingSchedule: community.meetingSchedule || '',
-      isActive: community.isActive
+      isActive: community.isActive,
+      isPrivate: (community as any).isPrivate || false,
+      inviteOnly: (community as any).inviteOnly || false
     })
     setIsModalOpen(true)
   }
@@ -127,7 +136,16 @@ export default function CommunitiesPage() {
       console.log('Leader ID type:', typeof formData.leaderId)
       
       if (isEditing && selectedCommunity) {
-        const response = await apiClient.updateCommunity(selectedCommunity.id, formData)
+        // Use _id for MongoDB documents or id if it exists
+        const communityId = (selectedCommunity as any)._id || selectedCommunity.id
+        console.log('Updating community with ID:', communityId)
+        
+        if (!communityId) {
+          console.error('No valid community ID found for update')
+          return
+        }
+        
+        const response = await apiClient.updateCommunity(communityId, formData)
         if (response.success) {
           loadCommunities()
           setIsModalOpen(false)
@@ -454,6 +472,32 @@ export default function CommunitiesPage() {
                   />
                   <label htmlFor="isActive" className="text-sm text-gray-700">
                     Community is active
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="isPrivate"
+                    checked={formData.isPrivate}
+                    onChange={(e) => setFormData(prev => ({ ...prev, isPrivate: e.target.checked }))}
+                    className="rounded"
+                  />
+                  <label htmlFor="isPrivate" className="text-sm text-gray-700">
+                    Private community
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="inviteOnly"
+                    checked={formData.inviteOnly}
+                    onChange={(e) => setFormData(prev => ({ ...prev, inviteOnly: e.target.checked }))}
+                    className="rounded"
+                  />
+                  <label htmlFor="inviteOnly" className="text-sm text-gray-700">
+                    Invite only (requires approval to join)
                   </label>
                 </div>
               </div>
