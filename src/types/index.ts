@@ -201,9 +201,11 @@ export interface Giving {
   memberId: string
   amount: number
   currency: string
-  method: 'cash' | 'card' | 'bank_transfer' | 'mobile_money' | 'other'
-  category: 'tithe' | 'offering' | 'special_offering' | 'building_fund' | 'missions' | 'other'
+  method: 'cash' | 'card' | 'bank_transfer' | 'mobile_money' | 'paystack' | 'other'
+  category: 'tithe' | 'offering' | 'special_offering' | 'building_fund' | 'missions' | 'youth' | 'outreach' | 'special' | 'other'
   description?: string
+  paymentReference?: string
+  status?: string
   date: Date
   isRecurring: boolean
   recurringFrequency?: 'weekly' | 'monthly' | 'yearly'
@@ -213,12 +215,14 @@ export interface Giving {
 // Populated version for frontend use
 export interface GivingPopulated {
   id: string
-  memberId: Member
+  memberId?: Member | { id: string; firstName: string; lastName: string }
   amount: number
   currency: string
-  method: 'cash' | 'card' | 'bank_transfer' | 'mobile_money' | 'other'
-  category: 'tithe' | 'offering' | 'special_offering' | 'building_fund' | 'missions' | 'other'
+  method: 'cash' | 'card' | 'bank_transfer' | 'mobile_money' | 'paystack' | 'other'
+  category: 'tithe' | 'offering' | 'special_offering' | 'building_fund' | 'missions' | 'youth' | 'outreach' | 'special' | 'other'
   description?: string
+  paymentReference?: string
+  status?: string
   date: Date
   isRecurring: boolean
   recurringFrequency?: 'weekly' | 'monthly' | 'yearly'

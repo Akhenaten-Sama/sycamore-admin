@@ -23,6 +23,8 @@ import {
 import { GalleryImage, GalleryImagePopulated, GalleryFolder, GalleryFolderPopulated, Event } from '@/types'
 import { formatDateConsistent } from '@/lib/utils'
 import { apiClient } from '@/lib/api-client'
+import FileUploadComponent from '@/components/FileUploadComponent'
+import DocumentViewer from '@/components/DocumentViewer'
 
 const breadcrumbItems = [
   { label: 'Dashboard', href: '/dashboard' },
@@ -38,12 +40,19 @@ export default function GalleryPage() {
   const [folderFilter, setFolderFilter] = useState('')
   const [viewMode, setViewMode] = useState<'folders' | 'images'>('folders')
   const [selectedImage, setSelectedImage] = useState<GalleryImagePopulated | null>(null)
+ 
   const [selectedFolder, setSelectedFolder] = useState<GalleryFolderPopulated | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+  const [isDocumentViewerOpen, setIsDocumentViewerOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [availableFolders, setAvailableFolders] = useState<any[]>([])
+  const [newFolderName, setNewFolderName] = useState('')
+  const [showNewFolderInput, setShowNewFolderInput] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -51,7 +60,12 @@ export default function GalleryPage() {
     eventId: '',
     folderId: '',
     tags: '',
-    isPublic: true
+    isPublic: true,
+    // New fields for file upload
+    fileName: '',
+    fileType: '',
+    selectedFolder: '',
+    fileUrl: ''
   })
   const [folderFormData, setFolderFormData] = useState({
     name: '',
@@ -93,18 +107,10 @@ export default function GalleryPage() {
     }
   }
 
-  const handleUploadImage = () => {
+  const handleUploadFiles = () => {
     setSelectedImage(null)
     setIsEditing(false)
-    setFormData({
-      title: '',
-      description: '',
-      imageUrl: '',
-      eventId: '',
-      folderId: '',
-      tags: '',
-      isPublic: true
-    })
+    resetForm()
     setIsModalOpen(true)
   }
 
@@ -118,9 +124,19 @@ export default function GalleryPage() {
       eventId: image.eventId?.id || '',
       folderId: image.folderId?.id || '',
       tags: image.tags?.join(', ') || '',
-      isPublic: image.isPublic
+      isPublic: image.isPublic,
+      // Add missing fields
+      fileName: '',
+      fileType: '',
+      selectedFolder: '',
+      fileUrl: ''
     })
     setIsModalOpen(true)
+  }
+
+  const handleViewFile = (file: any) => {
+    setSelectedFile(file)
+    setIsDocumentViewerOpen(true)
   }
 
   const handleViewImage = (image: GalleryImagePopulated) => {
@@ -171,6 +187,7 @@ export default function GalleryPage() {
     loadImages()
     loadFolders()
     loadEvents()
+    loadAvailableFolders()
   }, [])
 
   useEffect(() => {
@@ -179,11 +196,10 @@ export default function GalleryPage() {
 
   const loadFolders = async () => {
     try {
-      // TODO: Implement API endpoint for folders
-      // const response = await apiClient.getGalleryFolders()
-      // if (response.success && response.data) {
-      //   setFolders(response.data)
-      // }
+      const response = await apiClient.getGalleryFolders()
+      if (response.success && response.data) {
+        setFolders(Array.isArray(response.data) ? response.data as GalleryFolderPopulated[] : [])
+      }
     } catch (error) {
       console.error('Error loading folders:', error)
     }
@@ -222,27 +238,17 @@ export default function GalleryPage() {
       }
 
       if (isEditing && selectedFolder) {
-        // Update existing folder - simplified for now
-        console.log('Updating folder:', folderData)
-        loadFolders()
-        setIsFolderModalOpen(false)
-        setIsEditing(false)
-        setFolderFormData({ name: '', description: '', eventId: '', isPublic: false })
-      } else {
-        // Create new folder - simplified for now
-        console.log('Creating folder:', folderData)
-        const newFolder = {
-          id: Date.now().toString(),
-          ...folderData,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          eventId: null,
-          imageCount: 0
+        const response = await apiClient.updateGalleryFolder(selectedFolder.id, folderData)
+        if (response.success) {
+          loadFolders()
+          setIsFolderModalOpen(false)
         }
-        setFolders(prev => [...prev, newFolder as any])
-        setIsFolderModalOpen(false)
-        setIsEditing(false)
-        setFolderFormData({ name: '', description: '', eventId: '', isPublic: false })
+      } else {
+        const response = await apiClient.createGalleryFolder(folderData)
+        if (response.success) {
+          loadFolders()
+          setIsFolderModalOpen(false)
+        }
       }
     } catch (error) {
       console.error('Error saving folder:', error)
@@ -254,15 +260,279 @@ export default function GalleryPage() {
   const handleDeleteFolder = async (folderId: string) => {
     if (confirm('Are you sure you want to delete this folder? All images in this folder will be moved to uncategorized.')) {
       try {
-        // TODO: Implement API endpoint for deleting folders
-        // const response = await apiClient.deleteGalleryFolder(folderId)
-        // if (response.success) {
-        //   loadFolders()
-        // }
+        const response = await apiClient.deleteGalleryFolder(folderId)
+        if (response.success) {
+          loadFolders()
+        }
       } catch (error) {
         console.error('Error deleting folder:', error)
       }
     }
+  }
+
+  // New functions for file upload
+  const loadAvailableFolders = async () => {
+    try {
+      const response = await apiClient.getGalleryFolders()
+      if (response.success && response.data && Array.isArray(response.data)) {
+        const dbFolders = (response.data as any[]).map((folder: any) => ({
+          id: folder.id,
+          name: folder.name
+        }))
+        
+        // Add some default folders plus database folders
+        setAvailableFolders([
+          { id: 'general', name: 'General' },
+          { id: 'events', name: 'Events' },
+          { id: 'worship', name: 'Worship' },
+          { id: 'youth', name: 'Youth' },
+          { id: 'children', name: 'Children' },
+          { id: 'documents', name: 'Documents' },
+          { id: 'sermons', name: 'Sermons' },
+          { id: 'announcements', name: 'Announcements' },
+          ...dbFolders
+        ])
+      }
+    } catch (error) {
+      console.error('Failed to load folders:', error)
+      // Fallback to default folders
+      setAvailableFolders([
+        { id: 'general', name: 'General' },
+        { id: 'events', name: 'Events' },
+        { id: 'worship', name: 'Worship' },
+        { id: 'youth', name: 'Youth' },
+        { id: 'children', name: 'Children' },
+        { id: 'documents', name: 'Documents' },
+        { id: 'sermons', name: 'Sermons' },
+        { id: 'announcements', name: 'Announcements' }
+      ])
+    }
+  }
+
+  const allowedTypes = {
+    image: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'],
+    video: ['video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/mkv', 'video/webm'],
+    audio: ['audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/flac', 'audio/aac'],
+    document: [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'text/plain',
+      'text/csv',
+      'application/zip',
+      'application/x-rar-compressed',
+      'application/x-7z-compressed'
+    ]
+  }
+
+  const validTypes = [
+    ...allowedTypes.image,
+    ...allowedTypes.video,
+    ...allowedTypes.audio,
+    ...allowedTypes.document
+  ]
+
+  const isValidFileType = (fileType: string) => {
+    return validTypes.includes(fileType)
+  }
+
+  const getFileCategory = (fileType: string) => {
+    for (const [category, types] of Object.entries(allowedTypes)) {
+      if (types.includes(fileType)) {
+        return category
+      }
+    }
+    return 'unknown'
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('File input changed', e.target.files)
+    const file = e.target.files?.[0]
+    if (file) {
+      console.log('File selected:', file.name, file.type, file.size)
+      
+      // Validate file type
+      if (!isValidFileType(file.type)) {
+        alert(`File type "${file.type}" is not supported. Please select a supported file type.`)
+        // Reset the input
+        e.target.value = ''
+        return
+      }
+      
+      setSelectedFile(file)
+      // Auto-populate file name and type
+      setFormData(prev => ({
+        ...prev,
+        fileName: file.name,
+        fileType: file.type || 'unknown'
+      }))
+    } else {
+      console.log('No file selected')
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    const files = e.dataTransfer.files
+    if (files.length > 0) {
+      const file = files[0]
+      console.log('File dropped:', file.name, file.type, file.size)
+      
+      // Validate file type
+      if (!isValidFileType(file.type)) {
+        alert(`File type "${file.type}" is not supported. Please select a supported file type.`)
+        return
+      }
+      
+      setSelectedFile(file)
+      setFormData(prev => ({
+        ...prev,
+        fileName: file.name,
+        fileType: file.type || 'unknown'
+      }))
+    }
+  }
+
+  const createNewFolder = async () => {
+    if (newFolderName.trim()) {
+      try {
+        const response = await apiClient.createGalleryFolder({
+          name: newFolderName.trim(),
+          description: `Auto-created folder: ${newFolderName.trim()}`,
+          createdBy: '507f1f77bcf86cd799439011', // Should come from auth context
+          isPublic: true
+        })
+
+        if (response.success && response.data) {
+          const folderData = response.data as any
+          const newFolder = {
+            id: folderData.id,
+            name: folderData.name
+          }
+          
+          setAvailableFolders(prev => [...prev, newFolder])
+          setFormData(prev => ({ ...prev, selectedFolder: newFolder.id }))
+          setNewFolderName('')
+          setShowNewFolderInput(false)
+          
+          // Refresh the main folders list
+          loadFolders()
+        } else {
+          alert('Failed to create folder: ' + (response.error || 'Unknown error'))
+        }
+      } catch (error) {
+        console.error('Error creating folder:', error)
+        alert('Failed to create folder')
+      }
+    }
+  }
+
+  const handleFileUpload = async () => {
+    if (!selectedFile) return
+
+    setUploading(true)
+    try {
+      const uploadFormData = new FormData()
+      uploadFormData.append('file', selectedFile)
+      uploadFormData.append('folder', formData.selectedFolder || 'general')
+      uploadFormData.append('customName', formData.fileName)
+
+      const response = await fetch('/api/gallery/upload', {
+        method: 'POST',
+        body: uploadFormData
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setFormData(prev => ({
+          ...prev,
+          fileUrl: result.data.url
+        }))
+        console.log('File uploaded successfully:', result.data)
+      } else {
+        console.error('Upload failed:', result.error)
+        alert('Upload failed: ' + result.error)
+      }
+    } catch (error) {
+      console.error('Upload error:', error)
+      alert('Upload failed: ' + error)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleSaveFile = async () => {
+    if (!formData.fileUrl) {
+      alert('Please upload a file first')
+      return
+    }
+
+    try {
+      // Save file metadata to database
+      const fileData = {
+        title: formData.fileName,
+        imageUrl: formData.fileUrl,
+        folderId: formData.selectedFolder || undefined,
+        isPublic: true,
+        uploadedBy: '507f1f77bcf86cd799439011' // Should come from auth context
+      }
+
+      const response = await apiClient.uploadGalleryImage(fileData)
+      if (response.success) {
+        console.log('File saved to database successfully')
+        setIsModalOpen(false)
+        resetForm()
+        loadImages()
+        loadFolders() // Refresh folders to update image counts
+      } else {
+        console.error('Failed to save to database:', response.error)
+        alert('Failed to save to database')
+      }
+    } catch (error) {
+      console.error('Save error:', error)
+      alert('Failed to save to database')
+    }
+  }
+
+  const resetForm = () => {
+    setSelectedFile(null)
+    setFormData({
+      title: '',
+      description: '',
+      imageUrl: '',
+      eventId: '',
+      folderId: '',
+      tags: '',
+      isPublic: true,
+      fileName: '',
+      fileType: '',
+      selectedFolder: '',
+      fileUrl: ''
+    })
+    setNewFolderName('')
+    setShowNewFolderInput(false)
   }
 
   return (
@@ -310,9 +580,9 @@ export default function GalleryPage() {
                 Create Folder
               </Button>
             )}
-            <Button onClick={handleUploadImage} className="flex items-center gap-2">
+            <Button onClick={handleUploadFiles} className="flex items-center gap-2">
               <Upload className="w-4 h-4" />
-              Upload Image
+              Upload Files
             </Button>
           </div>
         </div>
@@ -572,120 +842,307 @@ export default function GalleryPage() {
 
         {/* Upload/Edit Modal */}
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-              <h2 className="text-xl font-semibold mb-4">
-                {isEditing ? 'Edit Image' : 'Upload New Image'}
-              </h2>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold">
+                  {isEditing ? 'Edit File' : 'Upload New File'}
+                </h2>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6">
               
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Title *
-                  </label>
-                  <Input
-                    value={formData.title}
-                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="Image title"
-                  />
-                </div>
+              {!isEditing && (
+                <div className="space-y-4">
+                  {/* File Upload */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Select File
+                    </label>
+                    
+                    {/* Simplified File Input Approach */}
+                    <div className="space-y-3">
+                      {/* Primary visible file input */}
+                      <div>
+                        <input
+                          type="file"
+                          onChange={handleFileChange}
+                          accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z"
+                          className="w-full text-sm border border-gray-300 rounded-lg p-2 bg-white file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        />
+                      </div>
+                      
+                      {/* Drag and drop zone as alternative */}
+                      <div 
+                        onDragOver={handleDragOver}
+                        onDragEnter={handleDragEnter}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                        className="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-colors"
+                      >
+                        <div className="space-y-2">
+                          <div className="text-4xl">📁</div>
+                          <div className="text-lg font-medium text-gray-700">
+                            Or drag and drop files here
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            📸 Images: JPEG, PNG, GIF, WebP, SVG<br/>
+                            🎥 Videos: MP4, AVI, MOV, WMV, MKV, WebM<br/>
+                            🎵 Audio: MP3, WAV, OGG, M4A, FLAC, AAC<br/>
+                            📄 Documents: PDF, Word, Excel, PowerPoint, TXT, CSV<br/>
+                            📦 Archives: ZIP, RAR, 7Z
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* File Selection Feedback */}
+                    {selectedFile && (
+                      <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-600">✓</span>
+                          <span className="text-sm font-medium text-green-800">
+                            File Selected: {selectedFile.name}
+                          </span>
+                        </div>
+                        <div className="text-xs text-green-600 mt-1">
+                          Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB | 
+                          Type: {selectedFile.type} | 
+                          Category: {getFileCategory(selectedFile.type)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Image description"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    rows={3}
-                  />
-                </div>
+                  {/* File Name (Auto-fetched) */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      File Name
+                    </label>
+                    <Input
+                      value={formData.fileName || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, fileName: e.target.value }))}
+                      placeholder="File name will be auto-populated"
+                      className="bg-gray-50"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Image URL *
-                  </label>
-                  <Input
-                    value={formData.imageUrl}
-                    onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
-                    placeholder="https://example.com/image.jpg"
-                  />
-                </div>
+                  {/* File Type (Auto-detected) */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      File Type
+                    </label>
+                    <Input
+                      value={formData.fileType || ''}
+                      readOnly
+                      placeholder="File type will be auto-detected"
+                      className="bg-gray-50"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Event (Optional)
-                  </label>
-                  <select
-                    value={formData.eventId}
-                    onChange={(e) => setFormData(prev => ({ ...prev, eventId: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">No specific event</option>
-                    {events.map((event) => (
-                      <option key={event.id} value={event.id}>
-                        {event.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  {/* Folder Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Folder
+                    </label>
+                    <div className="flex gap-2">
+                      <select
+                        value={formData.selectedFolder || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, selectedFolder: e.target.value }))}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Select existing folder</option>
+                        {availableFolders.map(folder => (
+                          <option key={folder.id} value={folder.id}>
+                            {folder.name}
+                          </option>
+                        ))}
+                      </select>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowNewFolderInput(!showNewFolderInput)}
+                        className="whitespace-nowrap"
+                      >
+                        {showNewFolderInput ? 'Cancel' : 'Create New'}
+                      </Button>
+                    </div>
+                    
+                    {showNewFolderInput && (
+                      <div className="mt-2 flex gap-2">
+                        <Input
+                          value={newFolderName}
+                          onChange={(e) => setNewFolderName(e.target.value)}
+                          placeholder="New folder name"
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          onClick={createNewFolder}
+                          size="sm"
+                        >
+                          Create
+                        </Button>
+                      </div>
+                    )}
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Folder (Optional)
-                  </label>
-                  <select
-                    value={formData.folderId}
-                    onChange={(e) => setFormData(prev => ({ ...prev, folderId: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">No specific folder</option>
-                    {folders.map((folder) => (
-                      <option key={folder.id} value={folder.id}>
-                        {folder.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  {/* Upload Button */}
+                  <div>
+                    <Button
+                      onClick={handleFileUpload}
+                      disabled={!selectedFile || uploading}
+                      className="w-full"
+                    >
+                      {uploading ? 'Uploading...' : 'Upload File'}
+                    </Button>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tags (comma separated)
-                  </label>
-                  <Input
-                    value={formData.tags}
-                    onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
-                    placeholder="church, worship, fellowship"
-                  />
-                </div>
+                  {/* File URL (Auto-populated after upload) */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      File URL
+                    </label>
+                    <Input
+                      value={formData.fileUrl || ''}
+                      readOnly
+                      placeholder="File URL will appear here after upload"
+                      className="bg-gray-50"
+                    />
+                  </div>
 
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="isPublic"
-                    checked={formData.isPublic}
-                    onChange={(e) => setFormData(prev => ({ ...prev, isPublic: e.target.checked }))}
-                    className="rounded"
-                  />
-                  <label htmlFor="isPublic" className="text-sm text-gray-700">
-                    Make image publicly visible
-                  </label>
+                  <div className="flex justify-end gap-2 pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsModalOpen(false)
+                        resetForm()
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleSaveFile}
+                      disabled={!formData.fileUrl}
+                    >
+                      Save to Database
+                    </Button>
+                  </div>
                 </div>
+              )}
+
+              {isEditing && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Title *
+                    </label>
+                    <Input
+                      value={formData.title}
+                      onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="Image title"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Image description"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Event (Optional)
+                    </label>
+                    <select
+                      value={formData.eventId}
+                      onChange={(e) => setFormData(prev => ({ ...prev, eventId: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">No specific event</option>
+                      {events.map((event) => (
+                        <option key={event.id} value={event.id}>
+                          {event.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Folder (Optional)
+                    </label>
+                    <select
+                      value={formData.folderId}
+                      onChange={(e) => setFormData(prev => ({ ...prev, folderId: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">No specific folder</option>
+                      {folders.map((folder) => (
+                        <option key={folder.id} value={folder.id}>
+                          {folder.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Tags (comma separated)
+                    </label>
+                    <Input
+                      value={formData.tags}
+                      onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
+                      placeholder="church, worship, fellowship"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="isPublic"
+                      checked={formData.isPublic}
+                      onChange={(e) => setFormData(prev => ({ ...prev, isPublic: e.target.checked }))}
+                      className="rounded"
+                    />
+                    <label htmlFor="isPublic" className="text-sm text-gray-700">
+                      Make image publicly visible
+                    </label>
+                  </div>
+
+                  <div className="flex justify-end gap-2 mt-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsModalOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button onClick={handleSaveImage}>
+                      Update Image
+                    </Button>
+                  </div>
+                </div>
+              )}
               </div>
-
-              <div className="flex justify-end gap-2 mt-6">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsModalOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleSaveImage}>
-                  {isEditing ? 'Update' : 'Upload'} Image
-                </Button>
-              </div>
+              
+              {!isEditing && (
+                <div className="p-6 border-t border-gray-200">
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsModalOpen(false)}
+                    >
+                      Close
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -804,6 +1261,31 @@ export default function GalleryPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Document Viewer */}
+        {selectedFile && isDocumentViewerOpen && (
+          <DocumentViewer
+            file={{
+              id: 'temp-preview',
+              filename: selectedFile.name,
+              originalName: selectedFile.name,
+              url: URL.createObjectURL(selectedFile),
+              fileType: getFileCategory(selectedFile.type) as 'image' | 'document' | 'audio' | 'video' | 'other',
+              mimeType: selectedFile.type,
+              size: selectedFile.size,
+              folder: 'temp',
+              description: 'Preview file',
+              tags: [],
+              uploadedBy: 'temp' as any,
+              createdAt: new Date().toISOString()
+            }}
+            isOpen={isDocumentViewerOpen}
+            onClose={() => {
+              setIsDocumentViewerOpen(false)
+              setSelectedFile(null)
+            }}
+          />
         )}
       </div>
     </DashboardLayout>

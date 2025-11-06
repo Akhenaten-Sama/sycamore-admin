@@ -390,6 +390,7 @@ export interface IGalleryImage extends Document {
   imageUrl: string
   thumbnailUrl?: string
   eventId?: mongoose.Types.ObjectId
+  folderId?: mongoose.Types.ObjectId
   uploadedBy: mongoose.Types.ObjectId
   uploadedAt: Date
   tags?: string[]
@@ -402,6 +403,7 @@ const galleryImageSchema = new Schema<IGalleryImage>({
   imageUrl: { type: String, required: true },
   thumbnailUrl: { type: String },
   eventId: { type: Schema.Types.ObjectId, ref: 'Event' },
+  folderId: { type: Schema.Types.ObjectId, ref: 'GalleryFolder' },
   uploadedBy: { type: Schema.Types.ObjectId, ref: 'Member', required: true },
   uploadedAt: { type: Date, default: Date.now },
   tags: [{ type: String }],
@@ -463,9 +465,11 @@ export interface IGiving extends Document {
   memberId: mongoose.Types.ObjectId
   amount: number
   currency: string
-  method: 'cash' | 'card' | 'bank_transfer' | 'mobile_money' | 'other'
-  category: 'tithe' | 'offering' | 'special_offering' | 'building_fund' | 'missions' | 'other'
+  method: 'cash' | 'card' | 'bank_transfer' | 'mobile_money' | 'paystack' | 'other'
+  category: 'tithe' | 'offering' | 'special_offering' | 'building_fund' | 'missions' | 'youth' | 'outreach' | 'special' | 'other'
   description?: string
+  paymentReference?: string
+  status?: string
   date: Date
   isRecurring: boolean
   recurringFrequency?: 'weekly' | 'monthly' | 'yearly'
@@ -477,15 +481,17 @@ const givingSchema = new Schema<IGiving>({
   currency: { type: String, default: 'USD' },
   method: { 
     type: String, 
-    enum: ['cash', 'card', 'bank_transfer', 'mobile_money', 'other'], 
+    enum: ['cash', 'card', 'bank_transfer', 'mobile_money', 'paystack', 'other'], 
     required: true 
   },
   category: { 
     type: String, 
-    enum: ['tithe', 'offering', 'special_offering', 'building_fund', 'missions', 'other'], 
+    enum: ['tithe', 'offering', 'special_offering', 'building_fund', 'missions', 'youth', 'outreach', 'special', 'other'], 
     required: true 
   },
   description: { type: String },
+  paymentReference: { type: String },
+  status: { type: String, default: 'completed' },
   date: { type: Date, required: true },
   isRecurring: { type: Boolean, default: false },
   recurringFrequency: { 
@@ -777,5 +783,74 @@ const juniorAttendanceSchema = new Schema<IJuniorAttendance>({
   timestamps: true
 })
 
+// Media File Model for Gallery
+export interface IMediaFile extends Document {
+  filename: string
+  originalName: string
+  url: string
+  cloudflareKey: string
+  fileType: 'image' | 'document' | 'audio' | 'video' | 'other'
+  mimeType: string
+  size: number
+  folder: string
+  description?: string
+  tags: string[]
+  uploadedBy: mongoose.Types.ObjectId
+  isPublic: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+const mediaFileSchema = new Schema<IMediaFile>({
+  filename: { type: String, required: true },
+  originalName: { type: String, required: true },
+  url: { type: String, required: true },
+  cloudflareKey: { type: String, required: true },
+  fileType: { 
+    type: String, 
+    enum: ['image', 'document', 'audio', 'video', 'other'],
+    required: true 
+  },
+  mimeType: { type: String, required: true },
+  size: { type: Number, required: true },
+  folder: { type: String, required: true },
+  description: { type: String },
+  tags: [{ type: String }],
+  uploadedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  isPublic: { type: Boolean, default: true }
+}, {
+  timestamps: true
+})
+
 export const JuniorMember: Model<IJuniorMember> = mongoose.models.JuniorMember || mongoose.model<IJuniorMember>('JuniorMember', juniorMemberSchema)
 export const JuniorAttendance: Model<IJuniorAttendance> = mongoose.models.JuniorAttendance || mongoose.model<IJuniorAttendance>('JuniorAttendance', juniorAttendanceSchema)
+export const MediaFile: Model<IMediaFile> = mongoose.models.MediaFile || mongoose.model<IMediaFile>('MediaFile', mediaFileSchema)
+
+// Gallery Folder Model for organizing media files
+export interface IGalleryFolder extends Document {
+  name: string
+  description?: string
+  eventId?: mongoose.Types.ObjectId
+  createdBy: mongoose.Types.ObjectId
+  isPublic: boolean
+  coverImage?: string
+  color?: string
+  imageCount?: number
+  createdAt: Date
+  updatedAt: Date
+}
+
+const galleryFolderSchema = new Schema<IGalleryFolder>({
+  name: { type: String, required: true },
+  description: { type: String },
+  eventId: { type: Schema.Types.ObjectId, ref: 'Event' },
+  createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  isPublic: { type: Boolean, default: true },
+  coverImage: { type: String },
+  color: { type: String },
+  imageCount: { type: Number, default: 0 }
+}, {
+  timestamps: true
+})
+
+export const GalleryFolder: Model<IGalleryFolder> = mongoose.models.GalleryFolder || mongoose.model<IGalleryFolder>('GalleryFolder', galleryFolderSchema)

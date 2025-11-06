@@ -210,6 +210,20 @@ export default function GivingPage() {
     }
   }
 
+  const getCurrencySymbol = (currencyCode: string) => {
+    const symbols: { [key: string]: string } = {
+      'NGN': '₦',
+      'USD': '$',
+      'EUR': '€',
+      'GBP': '£',
+      'CAD': 'C$',
+      'GHS': 'GH₵',
+      'ZAR': 'R',
+      'KES': 'KSh'
+    };
+    return symbols[currencyCode] || '$';
+  };
+
   useEffect(() => {
     loadGivings()
   }, [categoryFilter, methodFilter, memberFilter, dateRange])
@@ -270,10 +284,12 @@ export default function GivingPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Average Giving</p>
-                  <p className="text-2xl font-bold text-gray-900">${stats.averageGiving.toFixed(0)}</p>
+                  <p className="text-sm text-gray-600">Paystack Transactions</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {givings.filter(g => g.method === 'paystack').length}
+                  </p>
                 </div>
-                <Heart className="w-8 h-8 text-red-500" />
+                <CreditCard className="w-8 h-8 text-indigo-500" />
               </div>
             </CardContent>
           </Card>
@@ -294,6 +310,9 @@ export default function GivingPage() {
                 <option value="special_offering">Special Offering</option>
                 <option value="building_fund">Building Fund</option>
                 <option value="missions">Missions</option>
+                <option value="youth">Youth Ministry</option>
+                <option value="outreach">Community Outreach</option>
+                <option value="special">Special Projects</option>
                 <option value="other">Other</option>
               </select>
               
@@ -305,6 +324,7 @@ export default function GivingPage() {
                 <option value="">All Methods</option>
                 <option value="cash">Cash</option>
                 <option value="card">Card</option>
+                <option value="paystack">Paystack</option>
                 <option value="bank_transfer">Bank Transfer</option>
                 <option value="mobile_money">Mobile Money</option>
                 <option value="other">Other</option>
@@ -393,8 +413,13 @@ export default function GivingPage() {
                         </TableCell>
                         <TableCell>
                           <div className="font-semibold text-green-600">
-                            ${giving.amount.toLocaleString()} {giving.currency}
+                            {getCurrencySymbol(giving.currency)}{giving.amount.toLocaleString()} {giving.currency}
                           </div>
+                          {giving.paymentReference && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              Ref: {giving.paymentReference}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -496,6 +521,26 @@ export default function GivingPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Currency *
+                  </label>
+                  <select
+                    value={formData.currency}
+                    onChange={(e) => setFormData(prev => ({ ...prev, currency: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="USD">$ USD</option>
+                    <option value="NGN">₦ NGN</option>
+                    <option value="EUR">€ EUR</option>
+                    <option value="GBP">£ GBP</option>
+                    <option value="CAD">C$ CAD</option>
+                    <option value="GHS">GH₵ GHS</option>
+                    <option value="ZAR">R ZAR</option>
+                    <option value="KES">KSh KES</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Category *
                   </label>
                   <select
@@ -508,6 +553,9 @@ export default function GivingPage() {
                     <option value="special_offering">Special Offering</option>
                     <option value="building_fund">Building Fund</option>
                     <option value="missions">Missions</option>
+                    <option value="youth">Youth Ministry</option>
+                    <option value="outreach">Community Outreach</option>
+                    <option value="special">Special Projects</option>
                     <option value="other">Other</option>
                   </select>
                 </div>
@@ -523,6 +571,7 @@ export default function GivingPage() {
                   >
                     <option value="cash">Cash</option>
                     <option value="card">Card</option>
+                    <option value="paystack">Paystack</option>
                     <option value="bank_transfer">Bank Transfer</option>
                     <option value="mobile_money">Mobile Money</option>
                     <option value="other">Other</option>

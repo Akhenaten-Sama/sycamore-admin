@@ -334,6 +334,35 @@ export class ApiClient {
     })
   }
 
+  // Gallery Folders API
+  async getGalleryFolders(params?: { search?: string }) {
+    const searchParams = new URLSearchParams()
+    if (params?.search) searchParams.append('search', params.search)
+
+    const queryString = searchParams.toString()
+    return this.request(`/gallery/folders${queryString ? `?${queryString}` : ''}`)
+  }
+
+  async createGalleryFolder(folder: any) {
+    return this.request('/gallery/folders', {
+      method: 'POST',
+      body: JSON.stringify(folder),
+    })
+  }
+
+  async updateGalleryFolder(id: string, folder: any) {
+    return this.request('/gallery/folders', {
+      method: 'PUT',
+      body: JSON.stringify({ id, ...folder }),
+    })
+  }
+
+  async deleteGalleryFolder(id: string) {
+    return this.request(`/gallery/folders?id=${id}`, {
+      method: 'DELETE',
+    })
+  }
+
   // Comments API
   async getComments(params?: { targetType?: string; targetId?: string; authorId?: string; isApproved?: boolean }) {
     const searchParams = new URLSearchParams()
