@@ -135,12 +135,15 @@ export async function POST(request: NextRequest) {
       lastName: user.lastName,
       role: user.role,
       permissions: user.permissions,
+      mustChangePassword: user.mustChangePassword || false,
       avatar: member?.avatar,
       phone: member?.phone,
       dateJoined: member?.dateJoined,
       isFirstTimer: member?.isFirstTimer,
       teamId: member?.teamId,
       communityIds: member?.communityIds || [],
+      // Profile completion status
+      profileComplete: !!(member?.phone && member?.dateOfBirth && member?.address),
       // User journey stats
       stats: {
         attendanceStreak: member?.attendanceStreak || 0,

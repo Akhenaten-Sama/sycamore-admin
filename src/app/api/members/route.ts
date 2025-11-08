@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
-import { Member } from '@/lib/models'
+import { Member, User } from '@/lib/models'
 
 export async function GET(request: NextRequest) {
   try {
@@ -70,9 +70,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if email already exists
+    // Check if email already exists in members or users
     const existingMember = await Member.findOne({ email: body.email })
-    if (existingMember) {
+    const existingUser = await User.findOne({ email: body.email })
+    if (existingMember || existingUser) {
       return NextResponse.json(
         { success: false, error: 'Member with this email already exists' },
         { status: 400 }
@@ -92,10 +93,64 @@ export async function POST(request: NextRequest) {
       dateOfBirth: body.dateOfBirth ? new Date(body.dateOfBirth) : undefined,
       weddingAnniversary: body.weddingAnniversary ? new Date(body.weddingAnniversary) : undefined,
       maritalStatus: body.maritalStatus || 'single',
-      emergencyContact: body.emergencyContact
+      emergencyContact: body.emergencyContact,
+      dateJoined: new Date()
     })
 
     const savedMember = await newMember.save()
+
+    // If createUserAccount is requested, create a user account with default password
+    if (body.createUserAccount) {
+      const bcrypt = require('bcryptjs')
+      const crypto = require('crypto')
+      
+      // Generate a secure random password
+      const tempPassword = crypto.randomBytes(8).toString('hex').substring(0, 8)
+      const hashedPassword = await bcrypt.hash(tempPassword, 12)
+
+      const newUser = new User({
+        email: body.email,
+        password: hashedPassword,
+        firstName: body.firstName,
+        lastName: body.lastName,
+        role: body.isAdmin ? 'admin' : (body.isTeamLead ? 'team_leader' : 'member'),
+        permissions: body.isAdmin ? ['*'] : (body.isTeamLead ? ['read:own_team', 'update:own_team'] : ['read:own_profile', 'update:own_profile']),
+        isActive: true,
+        mustChangePassword: true, // Force password change on first login
+        memberId: savedMember._id
+      })
+
+      const savedUser = await newUser.save()
+
+      // Link user to member
+      savedMember.userId = savedUser._id as any
+      await savedMember.save()
+
+      // Send email with temporary password
+      try {
+        const { sendTempPasswordEmail } = await import('@/lib/email-service')
+        await sendTempPasswordEmail(body.email, body.firstName, tempPassword)
+        console.log(`✅ Temporary password email sent to: ${body.email}`)
+      } catch (emailError) {
+        console.error('❌ Failed to send temporary password email:', emailError)
+        // Don't fail the user creation if email fails
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          member: savedMember,
+          user: {
+            id: savedUser._id,
+            email: savedUser.email,
+            mustChangePassword: true,
+            // Password sent via email, not in response for security
+            ...(process.env.NODE_ENV !== 'production' && { tempPassword })
+          }
+        },
+        message: 'Member and user account created successfully. Login credentials sent via email.'
+      })
+    }
 
     return NextResponse.json({
       success: true,

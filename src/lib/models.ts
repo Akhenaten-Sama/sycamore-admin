@@ -21,6 +21,8 @@ export interface IUser extends Document {
   loginAttempts: number
   lockoutUntil?: Date
   mustChangePassword?: boolean
+  resetPasswordToken?: string
+  resetPasswordTokenExpiry?: Date
   memberId?: mongoose.Types.ObjectId // Link to member profile if they are also a member
   createdBy?: mongoose.Types.ObjectId
   teamIds?: mongoose.Types.ObjectId[] // For team leaders, which teams they can manage
@@ -52,6 +54,8 @@ const userSchema = new Schema<IUser>({
   loginAttempts: { type: Number, default: 0 },
   lockoutUntil: { type: Date },
   mustChangePassword: { type: Boolean, default: false },
+  resetPasswordToken: { type: String },
+  resetPasswordTokenExpiry: { type: Date },
   memberId: { type: Schema.Types.ObjectId, ref: 'Member' },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   teamIds: [{ type: Schema.Types.ObjectId, ref: 'Team' }]

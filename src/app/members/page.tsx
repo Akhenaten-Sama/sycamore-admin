@@ -54,7 +54,8 @@ export default function MembersPage() {
     teamIds: [] as string[],
     isAdmin: false,
     isTeamLead: false,
-    isFirstTimer: false
+    isFirstTimer: false,
+    createUserAccount: false
   })
 
   useEffect(() => {
@@ -143,7 +144,8 @@ export default function MembersPage() {
       teamIds: [],
       isAdmin: false,
       isTeamLead: false,
-      isFirstTimer: false
+      isFirstTimer: false,
+      createUserAccount: false
     })
     setSelectedMember(null)
     setIsEditing(false)
@@ -175,7 +177,8 @@ export default function MembersPage() {
       teamIds: member.teamId ? [member.teamId] : [],
       isAdmin: member.isAdmin,
       isTeamLead: member.isTeamLead,
-      isFirstTimer: member.isFirstTimer
+      isFirstTimer: member.isFirstTimer,
+      createUserAccount: false // Don't auto-check when editing existing members
     })
     setIsEditing(true)
     setIsModalOpen(true)
@@ -589,6 +592,22 @@ export default function MembersPage() {
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <span className="ml-2 text-sm text-gray-700">Admin</span>
+                  </label>
+                </div>
+                <div className="border-t pt-4">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.createUserAccount}
+                      onChange={(e) => setFormData({ ...formData, createUserAccount: e.target.checked })}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">
+                      Create User Account
+                      <span className="block text-xs text-gray-500 mt-1">
+                        Generate login credentials and send via email
+                      </span>
+                    </span>
                   </label>
                 </div>
                 <div className="flex justify-end space-x-3 pt-4">
