@@ -618,7 +618,7 @@ const formSchema = new Schema<IForm>({
   description: { type: String },
   category: { type: String, default: 'General' },
   icon: { type: String, default: 'FormOutlined' },
-  color: { type: String, default: '#0A9396' },
+  color: { type: String, default: '#4A7C23' },
   fields: [{
     id: { type: String, required: true },
     label: { type: String, required: true },

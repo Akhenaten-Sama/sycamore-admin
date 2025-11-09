@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       fields: form.fields,
       category: form.category || 'General',
       icon: form.icon || 'FormOutlined',
-      color: form.color || '#0A9396'
+      color: form.color || '#4A7C23'
     }))
 
     return createCorsResponse({

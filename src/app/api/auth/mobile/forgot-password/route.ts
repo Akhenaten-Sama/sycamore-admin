@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     // Send password reset email
     try {
       const member = user.memberId as any
-      const resetUrl = `${process.env.FRONTEND_URL || 'https://mobile.sycamore.church'}/reset-password?token=${resetToken}`
+      const resetUrl = `${process.env.FRONTEND_URL || 'https://app.sycamore.church'}/reset-password?token=${resetToken}`
       
       await sendPasswordResetEmail(
         user.email, 
