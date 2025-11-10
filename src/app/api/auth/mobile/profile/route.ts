@@ -43,6 +43,8 @@ export async function GET(request: NextRequest) {
         lastName: user.lastName,
         role: user.role,
         permissions: user.permissions,
+        mustChangePassword: user.mustChangePassword || false,
+        profileComplete: !!(member?.phone && member?.dateOfBirth && member?.address),
         avatar: member?.avatar,
         phone: member?.phone,
         dateJoined: member?.dateJoined,

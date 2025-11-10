@@ -21,6 +21,7 @@ export interface IUser extends Document {
   loginAttempts: number
   lockoutUntil?: Date
   mustChangePassword?: boolean
+  profileComplete?: boolean
   resetPasswordToken?: string
   resetPasswordTokenExpiry?: Date
   memberId?: mongoose.Types.ObjectId // Link to member profile if they are also a member
@@ -54,6 +55,7 @@ const userSchema = new Schema<IUser>({
   loginAttempts: { type: Number, default: 0 },
   lockoutUntil: { type: Date },
   mustChangePassword: { type: Boolean, default: false },
+  profileComplete: { type: Boolean, default: false },
   resetPasswordToken: { type: String },
   resetPasswordTokenExpiry: { type: Date },
   memberId: { type: Schema.Types.ObjectId, ref: 'Member' },
@@ -420,7 +422,7 @@ const galleryImageSchema = new Schema<IGalleryImage>({
 export interface IComment extends Document {
   content: string
   authorId: mongoose.Types.ObjectId
-  targetType: 'event' | 'blog' | 'gallery' | 'announcement' | 'community_post'
+  targetType: 'event' | 'blog' | 'gallery' | 'announcement' | 'community_post' | 'media'
   targetId: mongoose.Types.ObjectId
   parentCommentId?: mongoose.Types.ObjectId
   isApproved: boolean
@@ -431,7 +433,7 @@ const commentSchema = new Schema<IComment>({
   authorId: { type: Schema.Types.ObjectId, ref: 'Member', required: true },
   targetType: { 
     type: String, 
-    enum: ['event', 'blog', 'gallery', 'announcement', 'community_post'], 
+    enum: ['event', 'blog', 'gallery', 'announcement', 'community_post', 'media'], 
     required: true 
   },
   targetId: { type: Schema.Types.ObjectId, required: true },

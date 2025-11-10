@@ -1,235 +1,378 @@
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import connectDB from '@/lib/mongodb'
-import { Member } from '@/lib/models'
+import { User } from '@/lib/models'
+import mongoose, { Model, Document } from 'mongoose'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
-// CORS headers for mobile app
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Credentials': 'false',
+interface IMedia extends Document {
+  title: string
+  description?: string
+  type: 'worship' | 'sermon' | 'podcast' | 'document' | 'audio' | 'video' | 'photo' | 'other'
+  url: string
+  thumbnailUrl?: string
+  speaker?: string
+  date: Date
+  duration?: string
+  tags: string[]
+  viewCount: number
+  isActive: boolean
+  createdBy: mongoose.Types.ObjectId
+  createdAt: Date
+  updatedAt: Date
 }
 
-function createCorsResponse(data: any, status: number) {
-  return NextResponse.json(data, { status, headers: corsHeaders })
-}
-
-export async function OPTIONS(request: NextRequest) {
-  return new Response(null, {
-    status: 200,
-    headers: corsHeaders,
+// Get Media model dynamically
+const getMediaModel = (): Model<IMedia> => {
+  // Try to get existing model first
+  if (mongoose.models.Media) {
+    return mongoose.models.Media as Model<IMedia>
+  }
+  
+  // Define the schema inline if model doesn't exist yet
+  const mediaSchema = new mongoose.Schema<IMedia>({
+    title: { type: String, required: true },
+    description: { type: String },
+    type: { 
+      type: String, 
+      enum: ['worship', 'sermon', 'podcast', 'document', 'audio', 'video', 'photo', 'other'],
+      required: true 
+    },
+    url: { type: String, required: true },
+    thumbnailUrl: { type: String },
+    speaker: { type: String },
+    date: { type: Date, required: true },
+    duration: { type: String },
+    tags: [{ type: String }],
+    viewCount: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
+  }, {
+    timestamps: true
   })
+  
+  return mongoose.model<IMedia>('Media', mediaSchema)
 }
 
+// Helper function to verify admin token
+async function verifyAdminToken(request: NextRequest) {
+  const authHeader = request.headers.get('authorization')
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null
+  }
+
+  const token = authHeader.substring(7)
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any
+    
+    // Get user from database to verify admin role
+    await connectDB()
+    const user = await User.findById(decoded.userId)
+    
+    if (!user || !user.isActive) {
+      return null
+    }
+    
+    // Check if user has admin privileges
+    if (user.role !== 'super_admin' && user.role !== 'admin') {
+      return null
+    }
+    
+    return { id: decoded.userId, role: user.role }
+  } catch (error) {
+    console.error('Token verification error:', error)
+    return null
+  }
+}
+
+// GET - Fetch all media items
 export async function GET(request: NextRequest) {
   try {
     await connectDB()
 
-    // Mock media data for now - in production, this would come from a media service or database
-    const mediaItems = [
-      {
-        id: '1',
-        type: 'image',
-        title: 'Sunday Service - Week 1',
-        description: 'Beautiful moments from our Sunday worship service',
-        url: 'https://images.unsplash.com/photo-1507692049790-de58290a4334?w=500&h=300&fit=crop',
-        thumbnail: 'https://images.unsplash.com/photo-1507692049790-de58290a4334?w=300&h=200&fit=crop',
-        uploadedBy: 'Pastor John',
-        uploadDate: new Date('2024-01-15'),
-        likes: 24,
-        comments: [
-          { id: '1', author: 'Mary Johnson', text: 'What a blessed service! 🙏', date: new Date('2024-01-15') },
-          { id: '2', author: 'David Smith', text: 'Praise the Lord!', date: new Date('2024-01-16') }
-        ],
-        tags: ['worship', 'sunday-service', 'community'],
-        category: 'worship'
-      },
-      {
-        id: '2',
-        type: 'video',
-        title: 'Youth Conference Highlights',
-        description: 'Amazing moments from our recent youth conference',
-        url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-        thumbnail: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=300&h=200&fit=crop',
-        uploadedBy: 'Youth Pastor Sarah',
-        uploadDate: new Date('2024-01-10'),
-        likes: 42,
-        comments: [
-          { id: '3', author: 'Teen Emma', text: 'This was so inspiring! 💪', date: new Date('2024-01-10') },
-          { id: '4', author: 'Youth Leader Mike', text: 'God is moving in our youth!', date: new Date('2024-01-11') }
-        ],
-        tags: ['youth', 'conference', 'testimony'],
-        category: 'youth',
-        duration: '5:30'
-      },
-      {
-        id: '3',
-        type: 'image',
-        title: 'Community Outreach Program',
-        description: 'Serving our community with love',
-        url: 'https://images.unsplash.com/photo-1593113630400-ea4288922497?w=500&h=300&fit=crop',
-        thumbnail: 'https://images.unsplash.com/photo-1593113630400-ea4288922497?w=300&h=200&fit=crop',
-        uploadedBy: 'Community Leader Lisa',
-        uploadDate: new Date('2024-01-08'),
-        likes: 31,
-        comments: [
-          { id: '5', author: 'Volunteer Tom', text: 'Love seeing the church in action!', date: new Date('2024-01-08') }
-        ],
-        tags: ['outreach', 'community', 'service'],
-        category: 'outreach'
-      },
-      {
-        id: '4',
-        type: 'video',
-        title: 'Christmas Carol Performance',
-        description: 'Our choir\'s beautiful Christmas performance',
-        url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-        thumbnail: 'https://images.unsplash.com/photo-1482686115713-0fbcaced6e28?w=300&h=200&fit=crop',
-        uploadedBy: 'Choir Director Anna',
-        uploadDate: new Date('2023-12-25'),
-        likes: 87,
-        comments: [
-          { id: '6', author: 'Church Member Bob', text: 'Absolutely beautiful! Glory to God! 🎵', date: new Date('2023-12-25') },
-          { id: '7', author: 'Visitor Jane', text: 'This moved me to tears. Thank you!', date: new Date('2023-12-26') }
-        ],
-        tags: ['christmas', 'music', 'choir', 'performance'],
-        category: 'music',
-        duration: '8:15'
-      },
-      {
-        id: '5',
-        type: 'image',
-        title: 'Baptism Celebration',
-        description: 'Celebrating new life in Christ',
-        url: 'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=500&h=300&fit=crop',
-        thumbnail: 'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=300&h=200&fit=crop',
-        uploadedBy: 'Pastor John',
-        uploadDate: new Date('2024-01-05'),
-        likes: 56,
-        comments: [
-          { id: '8', author: 'New Believer Mark', text: 'Thank you for this special moment! 🙌', date: new Date('2024-01-05') },
-          { id: '9', author: 'Sister Grace', text: 'Welcome to the family!', date: new Date('2024-01-05') }
-        ],
-        tags: ['baptism', 'celebration', 'testimony'],
-        category: 'sacraments'
-      },
-      {
-        id: '6',
-        type: 'image',
-        title: 'Bible Study Group',
-        description: 'Growing together in God\'s word',
-        url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&h=300&fit=crop',
-        thumbnail: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=200&fit=crop',
-        uploadedBy: 'Bible Study Leader Ruth',
-        uploadDate: new Date('2024-01-03'),
-        likes: 19,
-        comments: [
-          { id: '10', author: 'Study Member Paul', text: 'Love our weekly studies! 📖', date: new Date('2024-01-03') }
-        ],
-        tags: ['bible-study', 'learning', 'fellowship'],
-        category: 'education'
-      }
-    ]
-
-    // Filter by category if specified
     const { searchParams } = new URL(request.url)
-    const category = searchParams.get('category')
     const type = searchParams.get('type')
     const search = searchParams.get('search')
+    const isActive = searchParams.get('isActive')
 
-    let filteredMedia = mediaItems
-
-    if (category && category !== 'all') {
-      filteredMedia = filteredMedia.filter(item => item.category === category)
+    // Build query
+    let query: any = {}
+    
+    if (type && type !== '') {
+      query.type = type
     }
-
-    if (type && type !== 'all') {
-      filteredMedia = filteredMedia.filter(item => item.type === type)
+    
+    if (isActive !== null && isActive !== undefined) {
+      query.isActive = isActive === 'true'
     }
 
     if (search) {
-      filteredMedia = filteredMedia.filter(item => 
-        item.title.toLowerCase().includes(search.toLowerCase()) ||
-        item.description.toLowerCase().includes(search.toLowerCase()) ||
-        item.tags.some(tag => tag.toLowerCase().includes(search.toLowerCase()))
-      )
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { speaker: { $regex: search, $options: 'i' } },
+        { tags: { $in: [new RegExp(search, 'i')] } }
+      ]
     }
 
-    // Sort by upload date (newest first)
-    filteredMedia.sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime())
+    const MediaModel = getMediaModel()
+    const mediaItems = await MediaModel.find(query)
+      .populate('createdBy', 'firstName lastName')
+      .sort({ createdAt: -1 })
 
-    return createCorsResponse({
+    return NextResponse.json({
       success: true,
-      data: filteredMedia,
-      total: filteredMedia.length,
-      categories: [
-        { id: 'all', name: 'All Media', count: mediaItems.length },
-        { id: 'worship', name: 'Worship', count: mediaItems.filter(item => item.category === 'worship').length },
-        { id: 'youth', name: 'Youth', count: mediaItems.filter(item => item.category === 'youth').length },
-        { id: 'outreach', name: 'Outreach', count: mediaItems.filter(item => item.category === 'outreach').length },
-        { id: 'music', name: 'Music', count: mediaItems.filter(item => item.category === 'music').length },
-        { id: 'sacraments', name: 'Sacraments', count: mediaItems.filter(item => item.category === 'sacraments').length },
-        { id: 'education', name: 'Education', count: mediaItems.filter(item => item.category === 'education').length }
-      ]
-    }, 200)
+      data: mediaItems.map((item: any) => ({
+        id: item._id,
+        title: item.title,
+        description: item.description,
+        type: item.type,
+        url: item.url,
+        thumbnailUrl: item.thumbnailUrl,
+        speaker: item.speaker,
+        date: item.date,
+        duration: item.duration,
+        tags: item.tags,
+        viewCount: item.viewCount,
+        isActive: item.isActive,
+        createdBy: item.createdBy,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt
+      }))
+    })
 
   } catch (error) {
     console.error('Error fetching media:', error)
-    return createCorsResponse(
+    return NextResponse.json(
       { error: 'Failed to fetch media' },
-      500
+      { status: 500 }
     )
   }
 }
 
-// Like a media item
+// POST - Create new media item
 export async function POST(request: NextRequest) {
   try {
     await connectDB()
 
-    // Get authorization header
-    const authorization = request.headers.get('authorization')
-    if (!authorization) {
-      return createCorsResponse({ error: 'Authorization required' }, 401)
+    // Verify admin authentication
+    const user = await verifyAdminToken(request)
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
     }
 
-    const token = authorization.replace('Bearer ', '')
-    let decoded: any
+    const body = await request.json()
+    const {
+      title,
+      description,
+      type,
+      url,
+      thumbnailUrl,
+      speaker,
+      date,
+      duration,
+      tags,
+      isActive
+    } = body
 
-    try {
-      decoded = jwt.verify(token, JWT_SECRET)
-    } catch (error) {
-      return createCorsResponse({ error: 'Invalid token' }, 401)
+    // Validate required fields
+    if (!title || !type || !url || !date) {
+      return NextResponse.json(
+        { error: 'Missing required fields: title, type, url, date' },
+        { status: 400 }
+      )
     }
 
-    const { mediaId, action } = await request.json()
+    // Create new media item
+    const MediaModel = getMediaModel()
+    const newMedia = new MediaModel({
+      title,
+      description,
+      type,
+      url,
+      thumbnailUrl,
+      speaker,
+      date: new Date(date),
+      duration,
+      tags: Array.isArray(tags) ? tags : [],
+      isActive: isActive !== false,
+      createdBy: user.id,
+      viewCount: 0
+    })
 
-    if (action === 'like') {
-      // In a real implementation, you would update the like count in the database
-      return createCorsResponse({
-        success: true,
-        message: 'Media liked successfully'
-      }, 200)
-    } else if (action === 'comment') {
-      // Handle commenting
-      const { comment } = await request.json()
-      
-      return createCorsResponse({
-        success: true,
-        message: 'Comment added successfully'
-      }, 201)
+    await newMedia.save()
+    await newMedia.populate('createdBy', 'firstName lastName')
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        id: newMedia._id,
+        title: newMedia.title,
+        description: newMedia.description,
+        type: newMedia.type,
+        url: newMedia.url,
+        thumbnailUrl: newMedia.thumbnailUrl,
+        speaker: newMedia.speaker,
+        date: newMedia.date,
+        duration: newMedia.duration,
+        tags: newMedia.tags,
+        viewCount: newMedia.viewCount,
+        isActive: newMedia.isActive,
+        createdBy: newMedia.createdBy,
+        createdAt: newMedia.createdAt,
+        updatedAt: newMedia.updatedAt
+      }
+    }, { status: 201 })
+
+  } catch (error) {
+    console.error('Error creating media:', error)
+    return NextResponse.json(
+      { error: 'Failed to create media' },
+      { status: 500 }
+    )
+  }
+}
+
+// PUT - Update media item
+export async function PUT(request: NextRequest) {
+  try {
+    await connectDB()
+
+    // Verify admin authentication
+    const user = await verifyAdminToken(request)
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
     }
 
-    return createCorsResponse({ error: 'Invalid action' }, 400)
+    const body = await request.json()
+    const {
+      id,
+      title,
+      description,
+      type,
+      url,
+      thumbnailUrl,
+      speaker,
+      date,
+      duration,
+      tags,
+      isActive
+    } = body
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Media ID is required' },
+        { status: 400 }
+      )
+    }
+
+    // Update media item
+    const MediaModel = getMediaModel()
+    const updatedMedia = await MediaModel.findByIdAndUpdate(
+      id,
+      {
+        title,
+        description,
+        type,
+        url,
+        thumbnailUrl,
+        speaker,
+        date: date ? new Date(date) : undefined,
+        duration,
+        tags: Array.isArray(tags) ? tags : [],
+        isActive: isActive !== false
+      },
+      { new: true }
+    ).populate('createdBy', 'firstName lastName')
+
+    if (!updatedMedia) {
+      return NextResponse.json(
+        { error: 'Media not found' },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        id: updatedMedia._id,
+        title: updatedMedia.title,
+        description: updatedMedia.description,
+        type: updatedMedia.type,
+        url: updatedMedia.url,
+        thumbnailUrl: updatedMedia.thumbnailUrl,
+        speaker: updatedMedia.speaker,
+        date: updatedMedia.date,
+        duration: updatedMedia.duration,
+        tags: updatedMedia.tags,
+        viewCount: updatedMedia.viewCount,
+        isActive: updatedMedia.isActive,
+        createdBy: updatedMedia.createdBy,
+        createdAt: updatedMedia.createdAt,
+        updatedAt: updatedMedia.updatedAt
+      }
+    })
 
   } catch (error) {
     console.error('Error updating media:', error)
-    return createCorsResponse(
+    return NextResponse.json(
       { error: 'Failed to update media' },
-      500
+      { status: 500 }
+    )
+  }
+}
+
+// DELETE - Delete media item
+export async function DELETE(request: NextRequest) {
+  try {
+    await connectDB()
+
+    // Verify admin authentication
+    const user = await verifyAdminToken(request)
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Media ID is required' },
+        { status: 400 }
+      )
+    }
+
+    const MediaModel = getMediaModel()
+    const deletedMedia = await MediaModel.findByIdAndDelete(id)
+
+    if (!deletedMedia) {
+      return NextResponse.json(
+        { error: 'Media not found' },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Media deleted successfully'
+    })
+
+  } catch (error) {
+    console.error('Error deleting media:', error)
+    return NextResponse.json(
+      { error: 'Failed to delete media' },
+      { status: 500 }
     )
   }
 }

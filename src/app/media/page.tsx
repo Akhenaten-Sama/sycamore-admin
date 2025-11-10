@@ -29,7 +29,7 @@ interface MediaItem {
   id: string
   title: string
   description: string
-  type: 'worship' | 'sermon' | 'podcast' | 'other'
+   type: 'worship' | 'sermon' | 'podcast' | 'document' | 'audio' | 'video' | 'photo' | 'other'
   url: string
   thumbnailUrl?: string
   speaker?: string
@@ -64,45 +64,48 @@ export default function MediaPage() {
 
   useEffect(() => {
     loadMediaItems()
-  }, [])
+  }, [searchTerm, typeFilter])
 
   const loadMediaItems = async () => {
     setLoading(true)
     try {
-      // Mock data for now - replace with actual API call
-      const mockData: MediaItem[] = [
-        {
-          id: '1',
-          title: 'Sunday Worship Service',
-          description: 'Powerful worship session with amazing songs',
-          type: 'worship',
-          url: 'https://youtube.com/watch?v=example1',
-          speaker: 'Worship Team',
-          date: new Date('2024-01-07'),
-          duration: '45:30',
-          tags: ['worship', 'praise', 'sunday'],
-          viewCount: 234,
-          isActive: true,
-          createdAt: new Date()
-        },
-        {
-          id: '2',
-          title: 'Faith and Purpose - Part 1',
-          description: 'Deep dive into understanding God\'s purpose for your life',
-          type: 'sermon',
-          url: 'https://youtube.com/watch?v=example2',
-          speaker: 'Pastor John',
-          date: new Date('2024-01-07'),
-          duration: '52:15',
-          tags: ['faith', 'purpose', 'teaching'],
-          viewCount: 456,
-          isActive: true,
-          createdAt: new Date()
+      const params = new URLSearchParams()
+      if (typeFilter) params.append('type', typeFilter)
+      if (searchTerm) params.append('search', searchTerm)
+      
+      const response = await fetch(`/api/media?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
-      ]
-      setMediaItems(mockData)
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch media items')
+      }
+      
+      const result = await response.json()
+      if (result.success) {
+        const formattedItems = result.data.map((item: any) => ({
+          id: item.id,
+          title: item.title,
+          description: item.description || '',
+          type: item.type,
+          url: item.url,
+          thumbnailUrl: item.thumbnailUrl,
+          speaker: item.speaker || '',
+          date: new Date(item.date),
+          duration: item.duration || '',
+          tags: item.tags || [],
+          viewCount: item.viewCount || 0,
+          isActive: item.isActive,
+          createdAt: new Date(item.createdAt)
+        }))
+        setMediaItems(formattedItems)
+      }
     } catch (error) {
       console.error('Error loading media items:', error)
+      // Show fallback message or empty state
+      setMediaItems([])
     } finally {
       setLoading(false)
     }
@@ -145,30 +148,91 @@ export default function MediaPage() {
   }
 
   const handleSaveMedia = async () => {
+    // Basic validation
+    if (!formData.title.trim()) {
+      alert('Please enter a title')
+      return
+    }
+    if (!formData.url.trim()) {
+      alert('Please enter a URL')
+      return
+    }
+    if (!formData.date) {
+      alert('Please select a date')
+      return
+    }
+
     try {
-      const mediaData = {
+      setLoading(true)
+      
+      const mediaData: any = {
         ...formData,
         tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-        date: new Date(formData.date)
+        date: formData.date
       }
 
-      // Replace with actual API call
-      console.log('Saving media:', mediaData)
-      setIsModalOpen(false)
-      loadMediaItems()
+      const url = '/api/media'
+      const method = isEditing ? 'PUT' : 'POST'
+      
+      if (isEditing && selectedMedia) {
+        mediaData.id = selectedMedia.id
+      }
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(mediaData)
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to ${isEditing ? 'update' : 'create'} media`)
+      }
+
+      const result = await response.json()
+      if (result.success) {
+        setIsModalOpen(false)
+        await loadMediaItems()
+      } else {
+        throw new Error(result.error || `Failed to ${isEditing ? 'update' : 'create'} media`)
+      }
     } catch (error) {
       console.error('Error saving media:', error)
+      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`)
+    } finally {
+      setLoading(false)
     }
   }
 
   const handleDeleteMedia = async (mediaId: string) => {
     if (confirm('Are you sure you want to delete this media item?')) {
       try {
-        // Replace with actual API call
-        console.log('Deleting media:', mediaId)
-        loadMediaItems()
+        setLoading(true)
+        
+        const response = await fetch(`/api/media?id=${mediaId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to delete media')
+        }
+
+        const result = await response.json()
+        if (result.success) {
+          await loadMediaItems()
+        } else {
+          throw new Error(result.error || 'Failed to delete media')
+        }
       } catch (error) {
         console.error('Error deleting media:', error)
+        alert(`Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`)
+      } finally {
+        setLoading(false)
       }
     }
   }
@@ -209,7 +273,7 @@ export default function MediaPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {['worship', 'sermon', 'podcast', 'other'].map((type) => {
+          {['worship', 'sermon', 'podcast', 'audio', 'video', 'photo', 'other'].map((type) => {
             const count = mediaItems.filter(m => m.type === type).length
             const Icon = getTypeIcon(type)
             return (
@@ -251,6 +315,9 @@ export default function MediaPage() {
                 <option value="">All Types</option>
                 <option value="worship">Worship</option>
                 <option value="sermon">Sermons</option>
+                <option value="audio">Audio</option>
+                <option value="video">Video</option>
+                <option value="photo">Photos</option>
                 <option value="podcast">Podcasts</option>
                 <option value="other">Other</option>
               </select>
@@ -395,6 +462,10 @@ export default function MediaPage() {
                   >
                     <option value="sermon">Sermon</option>
                     <option value="worship">Worship</option>
+                    <option value="document">Document</option>
+                    <option value="audio">Audio</option>
+                    <option value="video">Video</option>
+                    <option value="photo">Photo</option>
                     <option value="podcast">Podcast</option>
                     <option value="other">Other</option>
                   </select>
