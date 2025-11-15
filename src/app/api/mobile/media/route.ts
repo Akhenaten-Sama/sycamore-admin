@@ -2,11 +2,74 @@ import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import connectDB from '@/lib/mongodb'
 import { GalleryImage, Comment } from '@/lib/models'
-import mongoose from 'mongoose'
+import mongoose, { Model, Document } from 'mongoose'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
-// Function to extract YouTube thumbnail
+// Media model interface (matches /api/media route)
+interface IMedia extends Document {
+  title: string
+  description?: string
+  type: 'worship' | 'sermon' | 'podcast' | 'document' | 'audio' | 'video' | 'photo' | 'other'
+  category?: 'sermon' | 'worship' | 'announcement' | 'teaching' | 'testimony' | 'other'
+  url: string
+  thumbnailUrl?: string
+  speaker?: string
+  date: Date
+  duration?: string
+  tags: string[]
+  viewCount: number
+  isActive: boolean
+  isLive?: boolean
+  createdBy: mongoose.Types.ObjectId
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Get or create Media model (same as /api/media route)
+const getMediaModel = (): Model<IMedia> | null => {
+  try {
+    // Try to get existing model first
+    if (mongoose.models.Media) {
+      console.log('✅ Found existing Media model')
+      return mongoose.models.Media as Model<IMedia>
+    }
+    
+    // Define the schema inline if model doesn't exist yet
+    const mediaSchema = new mongoose.Schema<IMedia>({
+      title: { type: String, required: true },
+      description: { type: String },
+      type: { 
+        type: String, 
+        enum: ['worship', 'sermon', 'podcast', 'document', 'audio', 'video', 'photo', 'other'],
+        required: true 
+      },
+      category: { 
+        type: String, 
+        enum: ['sermon', 'worship', 'announcement', 'teaching', 'testimony', 'other'],
+        default: 'other'
+      },
+      url: { type: String, required: true },
+      thumbnailUrl: { type: String },
+      speaker: { type: String },
+      date: { type: Date, required: true },
+      duration: { type: String },
+      tags: [{ type: String }],
+      viewCount: { type: Number, default: 0 },
+      isActive: { type: Boolean, default: true },
+      isLive: { type: Boolean, default: false },
+      createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
+    }, {
+      timestamps: true
+    })
+    
+    console.log('✅ Created new Media model')
+    return mongoose.model<IMedia>('Media', mediaSchema)
+  } catch (error) {
+    console.error('❌ Error creating Media model:', error)
+    return null
+  }
+}
 function getYouTubeThumbnail(url: string): string | null {
   if (!url) return null
   
@@ -93,15 +156,6 @@ function getMediaThumbnail(url: string, type: string, existingThumbnail?: string
   return null
 }
 
-// Import Media model dynamically
-const getMediaModel = () => {
-  if (mongoose.models.Media) {
-    return mongoose.models.Media
-  }
-  // If not available, return null to fall back to mock data
-  return null
-}
-
 function getUserFromToken(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -133,6 +187,8 @@ export async function GET(request: NextRequest) {
     try {
       // First try to get media from the Media model (admin-managed media)
       const MediaModel = getMediaModel()
+      console.log('📦 MediaModel available:', MediaModel ? 'YES' : 'NO')
+      
       if (MediaModel) {
         const query: any = { isActive: true }
         if (type && type !== 'all') {
@@ -142,50 +198,58 @@ export async function GET(request: NextRequest) {
         }
         
         totalCount = await MediaModel.countDocuments(query)
+        console.log('📊 Total Media items in database:', totalCount)
+        
         const adminMediaItems = await MediaModel.find(query)
           .sort({ createdAt: -1 })
           .skip(offset)
           .limit(limit)
           .populate('createdBy', 'firstName lastName')
           
+        console.log('📊 Admin media items fetched:', adminMediaItems.length)
+          
         if (adminMediaItems.length > 0) {
+          console.log('✅ Using admin Media items (not gallery)')
           mediaItems = adminMediaItems.map((item: any) => {
-            // Always use URL-based type detection for frontend
-            // This ensures that a sermon video shows as 'video' and sermon audio shows as 'audio'
-            const detectedType = detectMediaType(item.url)
+            // Always use URL-based type detection for media format
+            // The 'type' field in backend might be content category (sermon, worship, etc.)
+            const detectedType = detectMediaType(item.url, item.type)
             
-            // If backend already has specific media format types, use those
-            let finalType = detectedType
-            if (item.type === 'video' || item.type === 'audio' || item.type === 'photo' || item.type === 'document') {
-              finalType = item.type
-            }
+            console.log(`📊 Media item: ${item.title} - Backend type: ${item.type} - Detected type: ${detectedType} - URL: ${item.url}`)
             
             // Get appropriate thumbnail based on media type
-            const thumbnail = getMediaThumbnail(item.url, finalType, item.thumbnailUrl)
-            
-            console.log(`📊 Media item: ${item.title} - Backend type: ${item.type} - Detected type: ${detectedType} - Final type: ${finalType} - URL: ${item.url}`)
+            const thumbnail = getMediaThumbnail(item.url, detectedType, item.thumbnailUrl)
             
             return {
               _id: item._id,
               title: item.title,
               description: item.description,
-              type: finalType,
+              type: detectedType, // Use detected type for media format
+              category: item.category || item.type || 'other', // Use category field or type as fallback
               url: item.url,
               thumbnail,
-              speaker: item.speaker, // Add speaker field
+              speaker: item.speaker,
               uploadedBy: item.createdBy,
               createdAt: item.createdAt,
+              date: item.date,
               likes: item.viewCount,
+              views: item.viewCount,
               comments: 0,
               tags: item.tags,
+              isLive: item.isLive || false,
               duration: item.duration ? parseInt(item.duration.split(':')[0]) * 60 + parseInt(item.duration.split(':')[1] || '0') : undefined
             }
           })
+        } else {
+          console.log('⚠️ No admin media items found after query')
         }
+      } else {
+        console.log('❌ MediaModel not available')
       }
       
       // If no admin media found, try gallery images  
       if (mediaItems.length === 0) {
+        console.log('🖼️ Falling back to GalleryImage')
         const query = type && type !== 'all' ? { type } : {}
         totalCount = await GalleryImage.countDocuments(query)
         const galleryItems = await GalleryImage.find(query)
@@ -194,6 +258,7 @@ export async function GET(request: NextRequest) {
           .limit(limit)
           .populate('uploadedBy', 'firstName lastName')
           
+        console.log('🖼️ Gallery items fetched:', galleryItems.length)
         mediaItems = galleryItems.map((item: any) => ({
           _id: item._id,
           title: item.title,
@@ -238,6 +303,7 @@ export async function GET(request: NextRequest) {
           title: item.title,
           description: item.description,
           type: finalType,
+          category: item.category || 'other', // Add category field
           url: itemUrl,
           thumbnail: finalThumbnail,
           speaker: item.speaker, // Add speaker field
@@ -248,6 +314,7 @@ export async function GET(request: NextRequest) {
           likes: item.likes || 0,
           comments: item.comments || 0,
           tags: item.tags || [],
+          isLive: item.isLive || false, // Add isLive field
           duration: item.duration,
           isPublic: item.isPublic
         }

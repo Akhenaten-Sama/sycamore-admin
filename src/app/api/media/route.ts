@@ -10,6 +10,7 @@ interface IMedia extends Document {
   title: string
   description?: string
   type: 'worship' | 'sermon' | 'podcast' | 'document' | 'audio' | 'video' | 'photo' | 'other'
+  category?: 'sermon' | 'worship' | 'announcement' | 'teaching' | 'testimony' | 'other' // Added category field
   url: string
   thumbnailUrl?: string
   speaker?: string
@@ -18,6 +19,7 @@ interface IMedia extends Document {
   tags: string[]
   viewCount: number
   isActive: boolean
+  isLive?: boolean // For live streaming
   createdBy: mongoose.Types.ObjectId
   createdAt: Date
   updatedAt: Date
@@ -39,6 +41,11 @@ const getMediaModel = (): Model<IMedia> => {
       enum: ['worship', 'sermon', 'podcast', 'document', 'audio', 'video', 'photo', 'other'],
       required: true 
     },
+    category: { 
+      type: String, 
+      enum: ['sermon', 'worship', 'announcement', 'teaching', 'testimony', 'other'],
+      default: 'other'
+    },
     url: { type: String, required: true },
     thumbnailUrl: { type: String },
     speaker: { type: String },
@@ -47,6 +54,7 @@ const getMediaModel = (): Model<IMedia> => {
     tags: [{ type: String }],
     viewCount: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
+    isLive: { type: Boolean, default: false },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
   }, {
     timestamps: true
