@@ -29,7 +29,8 @@ interface MediaItem {
   id: string
   title: string
   description: string
-   type: 'worship' | 'sermon' | 'podcast' | 'document' | 'audio' | 'video' | 'photo' | 'other'
+  type: 'video' | 'audio' | 'photo' | 'document' | 'other'
+  category: 'sermon' | 'worship' | 'announcement' | 'teaching' | 'testimony' | 'other'
   url: string
   thumbnailUrl?: string
   speaker?: string
@@ -38,6 +39,7 @@ interface MediaItem {
   tags: string[]
   viewCount: number
   isActive: boolean
+  isLive: boolean
   createdAt: Date
 }
 
@@ -45,6 +47,7 @@ export default function MediaPage() {
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -52,19 +55,21 @@ export default function MediaPage() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    type: 'sermon' as MediaItem['type'],
+    type: 'video' as MediaItem['type'],
+    category: 'sermon' as MediaItem['category'],
     url: '',
     thumbnailUrl: '',
     speaker: '',
     date: new Date().toISOString().split('T')[0],
     duration: '',
     tags: '',
-    isActive: true
+    isActive: true,
+    isLive: false
   })
 
   useEffect(() => {
     loadMediaItems()
-  }, [searchTerm, typeFilter])
+  }, [searchTerm, typeFilter, categoryFilter])
 
   const loadMediaItems = async () => {
     setLoading(true)
@@ -90,6 +95,7 @@ export default function MediaPage() {
           title: item.title,
           description: item.description || '',
           type: item.type,
+          category: item.category || 'other',
           url: item.url,
           thumbnailUrl: item.thumbnailUrl,
           speaker: item.speaker || '',
@@ -98,6 +104,7 @@ export default function MediaPage() {
           tags: item.tags || [],
           viewCount: item.viewCount || 0,
           isActive: item.isActive,
+          isLive: item.isLive || false,
           createdAt: new Date(item.createdAt)
         }))
         setMediaItems(formattedItems)
@@ -117,14 +124,16 @@ export default function MediaPage() {
     setFormData({
       title: '',
       description: '',
-      type: 'sermon',
+      type: 'video',
+      category: 'sermon',
       url: '',
       thumbnailUrl: '',
       speaker: '',
       date: new Date().toISOString().split('T')[0],
       duration: '',
       tags: '',
-      isActive: true
+      isActive: true,
+      isLive: false
     })
     setIsModalOpen(true)
   }
@@ -136,13 +145,15 @@ export default function MediaPage() {
       title: media.title,
       description: media.description,
       type: media.type,
+      category: media.category,
       url: media.url,
       thumbnailUrl: media.thumbnailUrl || '',
       speaker: media.speaker || '',
       date: new Date(media.date).toISOString().split('T')[0],
       duration: media.duration || '',
       tags: media.tags.join(', '),
-      isActive: media.isActive
+      isActive: media.isActive,
+      isLive: media.isLive
     })
     setIsModalOpen(true)
   }
@@ -239,10 +250,22 @@ export default function MediaPage() {
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'worship': return Music
-      case 'sermon': return Video
-      case 'podcast': return Play
+      case 'audio': return Music
+      case 'video': return Video
+      case 'photo': return Play
+      case 'document': return Play
       default: return Video
+    }
+  }
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'sermon': return 'bg-blue-100 text-blue-800'
+      case 'worship': return 'bg-purple-100 text-purple-800'
+      case 'announcement': return 'bg-green-100 text-green-800'
+      case 'teaching': return 'bg-yellow-100 text-yellow-800'
+      case 'testimony': return 'bg-pink-100 text-pink-800'
+      default: return 'bg-gray-100 text-gray-800'
     }
   }
 
@@ -251,7 +274,8 @@ export default function MediaPage() {
                          media.speaker?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          media.description.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesType = !typeFilter || media.type === typeFilter
-    return matchesSearch && matchesType
+    const matchesCategory = !categoryFilter || media.category === categoryFilter
+    return matchesSearch && matchesType && matchesCategory
   })
 
   return (
@@ -272,16 +296,22 @@ export default function MediaPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {['worship', 'sermon', 'podcast', 'audio', 'video', 'photo', 'other'].map((type) => {
-            const count = mediaItems.filter(m => m.type === type).length
-            const Icon = getTypeIcon(type)
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {[
+            { key: 'sermon', label: 'Sermons', icon: Video },
+            { key: 'worship', label: 'Worship', icon: Music },
+            { key: 'teaching', label: 'Teachings', icon: Play },
+            { key: 'announcement', label: 'Announcements', icon: Video },
+            { key: 'testimony', label: 'Testimonies', icon: Video },
+            { key: 'other', label: 'Other', icon: Video }
+          ].map(({ key, label, icon: Icon }) => {
+            const count = mediaItems.filter(m => m.category === key).length
             return (
-              <Card key={type}>
+              <Card key={key}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600 capitalize">{type}s</p>
+                      <p className="text-sm text-gray-600">{label}</p>
                       <p className="text-2xl font-bold text-gray-900">{count}</p>
                     </div>
                     <Icon className="w-8 h-8 text-gray-400" />
@@ -312,13 +342,24 @@ export default function MediaPage() {
                 onChange={(e) => setTypeFilter(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">All Types</option>
-                <option value="worship">Worship</option>
-                <option value="sermon">Sermons</option>
+                <option value="">All Media Types</option>
+                <option value="video">Videos</option>
                 <option value="audio">Audio</option>
-                <option value="video">Video</option>
                 <option value="photo">Photos</option>
-                <option value="podcast">Podcasts</option>
+                <option value="document">Documents</option>
+                <option value="other">Other</option>
+              </select>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Categories</option>
+                <option value="sermon">Sermons</option>
+                <option value="worship">Worship</option>
+                <option value="teaching">Teachings</option>
+                <option value="announcement">Announcements</option>
+                <option value="testimony">Testimonies</option>
                 <option value="other">Other</option>
               </select>
             </div>
@@ -333,9 +374,19 @@ export default function MediaPage() {
               <Card key={media.id} className="hover:shadow-lg transition-shadow">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <TypeIcon className="w-5 h-5 text-blue-600" />
-                      <span className="text-sm text-gray-600 capitalize">{media.type}</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1">
+                        <TypeIcon className="w-5 h-5 text-blue-600" />
+                        <span className="text-sm text-gray-600 capitalize">{media.type}</span>
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(media.category)}`}>
+                        {media.category}
+                      </span>
+                      {media.isLive && (
+                        <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-600 text-white animate-pulse">
+                          🔴 LIVE
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-1">
                       <Eye className="w-4 h-4 text-gray-400" />
@@ -453,22 +504,39 @@ export default function MediaPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Type *
+                    Media Type * (Format)
                   </label>
                   <select
                     value={formData.type}
                     onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as MediaItem['type'] }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="sermon">Sermon</option>
-                    <option value="worship">Worship</option>
-                    <option value="document">Document</option>
-                    <option value="audio">Audio</option>
                     <option value="video">Video</option>
+                    <option value="audio">Audio</option>
                     <option value="photo">Photo</option>
-                    <option value="podcast">Podcast</option>
+                    <option value="document">Document</option>
                     <option value="other">Other</option>
                   </select>
+                  <p className="text-xs text-gray-500 mt-1">The format of the media file</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category * (Content Type)
+                  </label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as MediaItem['category'] }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="sermon">Sermon</option>
+                    <option value="worship">Worship</option>
+                    <option value="teaching">Teaching</option>
+                    <option value="announcement">Announcement</option>
+                    <option value="testimony">Testimony</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">What type of content this is</p>
                 </div>
 
                 <div>
@@ -536,6 +604,19 @@ export default function MediaPage() {
                   />
                   <label htmlFor="isActive" className="text-sm text-gray-700">
                     Active (visible to users)
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="isLive"
+                    checked={formData.isLive}
+                    onChange={(e) => setFormData(prev => ({ ...prev, isLive: e.target.checked }))}
+                    className="rounded"
+                  />
+                  <label htmlFor="isLive" className="text-sm text-gray-700">
+                    🔴 Live Stream (shows in "Sundays at Sycamore" section)
                   </label>
                 </div>
               </div>

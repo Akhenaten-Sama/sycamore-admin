@@ -9,8 +9,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 interface IMedia extends Document {
   title: string
   description?: string
-  type: 'worship' | 'sermon' | 'podcast' | 'document' | 'audio' | 'video' | 'photo' | 'other'
-  category?: 'sermon' | 'worship' | 'announcement' | 'teaching' | 'testimony' | 'other' // Added category field
+  type: 'video' | 'audio' | 'photo' | 'document' | 'other' // Media format
+  category: 'sermon' | 'worship' | 'announcement' | 'teaching' | 'testimony' | 'other' // Content category
   url: string
   thumbnailUrl?: string
   speaker?: string
@@ -19,7 +19,7 @@ interface IMedia extends Document {
   tags: string[]
   viewCount: number
   isActive: boolean
-  isLive?: boolean // For live streaming
+  isLive: boolean // For live streaming
   createdBy: mongoose.Types.ObjectId
   createdAt: Date
   updatedAt: Date
@@ -38,13 +38,15 @@ const getMediaModel = (): Model<IMedia> => {
     description: { type: String },
     type: { 
       type: String, 
-      enum: ['worship', 'sermon', 'podcast', 'document', 'audio', 'video', 'photo', 'other'],
-      required: true 
+      enum: ['video', 'audio', 'photo', 'document', 'other'],
+      required: true,
+      default: 'video'
     },
     category: { 
       type: String, 
       enum: ['sermon', 'worship', 'announcement', 'teaching', 'testimony', 'other'],
-      default: 'other'
+      required: true,
+      default: 'sermon'
     },
     url: { type: String, required: true },
     thumbnailUrl: { type: String },
@@ -136,6 +138,7 @@ export async function GET(request: NextRequest) {
         title: item.title,
         description: item.description,
         type: item.type,
+        category: item.category,
         url: item.url,
         thumbnailUrl: item.thumbnailUrl,
         speaker: item.speaker,
@@ -144,6 +147,7 @@ export async function GET(request: NextRequest) {
         tags: item.tags,
         viewCount: item.viewCount,
         isActive: item.isActive,
+        isLive: item.isLive,
         createdBy: item.createdBy,
         createdAt: item.createdAt,
         updatedAt: item.updatedAt
@@ -178,13 +182,15 @@ export async function POST(request: NextRequest) {
       title,
       description,
       type,
+      category,
       url,
       thumbnailUrl,
       speaker,
       date,
       duration,
       tags,
-      isActive
+      isActive,
+      isLive
     } = body
 
     // Validate required fields
@@ -201,6 +207,7 @@ export async function POST(request: NextRequest) {
       title,
       description,
       type,
+      category: category || 'sermon',
       url,
       thumbnailUrl,
       speaker,
@@ -208,6 +215,7 @@ export async function POST(request: NextRequest) {
       duration,
       tags: Array.isArray(tags) ? tags : [],
       isActive: isActive !== false,
+      isLive: isLive === true,
       createdBy: user.id,
       viewCount: 0
     })
@@ -222,6 +230,7 @@ export async function POST(request: NextRequest) {
         title: newMedia.title,
         description: newMedia.description,
         type: newMedia.type,
+        category: newMedia.category,
         url: newMedia.url,
         thumbnailUrl: newMedia.thumbnailUrl,
         speaker: newMedia.speaker,
@@ -230,6 +239,7 @@ export async function POST(request: NextRequest) {
         tags: newMedia.tags,
         viewCount: newMedia.viewCount,
         isActive: newMedia.isActive,
+        isLive: newMedia.isLive,
         createdBy: newMedia.createdBy,
         createdAt: newMedia.createdAt,
         updatedAt: newMedia.updatedAt
@@ -265,13 +275,15 @@ export async function PUT(request: NextRequest) {
       title,
       description,
       type,
+      category,
       url,
       thumbnailUrl,
       speaker,
       date,
       duration,
       tags,
-      isActive
+      isActive,
+      isLive
     } = body
 
     if (!id) {
@@ -289,13 +301,15 @@ export async function PUT(request: NextRequest) {
         title,
         description,
         type,
+        category,
         url,
         thumbnailUrl,
         speaker,
         date: date ? new Date(date) : undefined,
         duration,
         tags: Array.isArray(tags) ? tags : [],
-        isActive: isActive !== false
+        isActive: isActive !== false,
+        isLive: isLive === true
       },
       { new: true }
     ).populate('createdBy', 'firstName lastName')
@@ -314,6 +328,7 @@ export async function PUT(request: NextRequest) {
         title: updatedMedia.title,
         description: updatedMedia.description,
         type: updatedMedia.type,
+        category: updatedMedia.category,
         url: updatedMedia.url,
         thumbnailUrl: updatedMedia.thumbnailUrl,
         speaker: updatedMedia.speaker,
@@ -322,6 +337,7 @@ export async function PUT(request: NextRequest) {
         tags: updatedMedia.tags,
         viewCount: updatedMedia.viewCount,
         isActive: updatedMedia.isActive,
+        isLive: updatedMedia.isLive,
         createdBy: updatedMedia.createdBy,
         createdAt: updatedMedia.createdAt,
         updatedAt: updatedMedia.updatedAt

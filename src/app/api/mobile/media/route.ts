@@ -10,8 +10,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 interface IMedia extends Document {
   title: string
   description?: string
-  type: 'worship' | 'sermon' | 'podcast' | 'document' | 'audio' | 'video' | 'photo' | 'other'
-  category?: 'sermon' | 'worship' | 'announcement' | 'teaching' | 'testimony' | 'other'
+  type: 'video' | 'audio' | 'photo' | 'document' | 'other' // Media format
+  category: 'sermon' | 'worship' | 'announcement' | 'teaching' | 'testimony' | 'other' // Content category
   url: string
   thumbnailUrl?: string
   speaker?: string
@@ -20,7 +20,7 @@ interface IMedia extends Document {
   tags: string[]
   viewCount: number
   isActive: boolean
-  isLive?: boolean
+  isLive: boolean // For live streaming
   createdBy: mongoose.Types.ObjectId
   createdAt: Date
   updatedAt: Date
@@ -41,13 +41,15 @@ const getMediaModel = (): Model<IMedia> | null => {
       description: { type: String },
       type: { 
         type: String, 
-        enum: ['worship', 'sermon', 'podcast', 'document', 'audio', 'video', 'photo', 'other'],
-        required: true 
+        enum: ['video', 'audio', 'photo', 'document', 'other'],
+        required: true,
+        default: 'video'
       },
       category: { 
         type: String, 
         enum: ['sermon', 'worship', 'announcement', 'teaching', 'testimony', 'other'],
-        default: 'other'
+        required: true,
+        default: 'sermon'
       },
       url: { type: String, required: true },
       thumbnailUrl: { type: String },
@@ -211,21 +213,25 @@ export async function GET(request: NextRequest) {
         if (adminMediaItems.length > 0) {
           console.log('✅ Using admin Media items (not gallery)')
           mediaItems = adminMediaItems.map((item: any) => {
-            // Always use URL-based type detection for media format
-            // The 'type' field in backend might be content category (sermon, worship, etc.)
-            const detectedType = detectMediaType(item.url, item.type)
+            // Type is now the media format (video, audio, etc.) - use as is
+            // Category is the content type (sermon, worship, etc.) - use as is
+            const mediaType = item.type || 'video'
+            const categoryValue = item.category || 'other'
             
-            console.log(`📊 Media item: ${item.title} - Backend type: ${item.type} - Detected type: ${detectedType} - URL: ${item.url}`)
+            console.log(`📊 Media item: ${item.title}`)
+            console.log(`   - Media type: ${mediaType}`)
+            console.log(`   - Category: ${categoryValue}`)
+            console.log(`   - isLive: ${item.isLive}`)
             
             // Get appropriate thumbnail based on media type
-            const thumbnail = getMediaThumbnail(item.url, detectedType, item.thumbnailUrl)
+            const thumbnail = getMediaThumbnail(item.url, mediaType, item.thumbnailUrl)
             
             return {
               _id: item._id,
               title: item.title,
               description: item.description,
-              type: detectedType, // Use detected type for media format
-              category: item.category || item.type || 'other', // Use category field or type as fallback
+              type: mediaType, // Media format (video, audio, photo, document)
+              category: categoryValue, // Content category (sermon, worship, etc.)
               url: item.url,
               thumbnail,
               speaker: item.speaker,
