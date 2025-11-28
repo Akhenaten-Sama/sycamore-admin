@@ -5,82 +5,27 @@ import { ObjectId } from 'mongodb';
 // CORS headers for mobile app
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Allow-Credentials': 'false',
 }
 
-function createCorsResponse(data: any, status: number) {
-  return NextResponse.json(data, { status, headers: corsHeaders })
-}
-
 export async function OPTIONS(request: NextRequest) {
-  return new Response(null, {
+  return NextResponse.json({}, {
     status: 200,
     headers: corsHeaders,
   })
 }
 
-export async function GET(request: NextRequest) {
+// Using POST method as a workaround
+export async function POST(request: NextRequest) {
+  console.log('🟢 POST /api/mobile/profile - Request received');
+  console.log('🟢 URL:', request.url);
+  console.log('🟢 Method:', request.method);
+  
   try {
-    const mongoose = await connectDB();
-    const db = mongoose.connection.db;
-    
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    
-    if (!userId) {
-      return createCorsResponse(
-        { success: false, message: 'User ID is required' },
-        400
-      );
-    }
-
-    // Get user profile
-    const profile = await db.collection('members').findOne({
-      _id: new ObjectId(userId)
-    });
-
-    if (!profile) {
-      return createCorsResponse(
-        { success: false, message: 'Profile not found' },
-        404
-      );
-    }
-
-    return createCorsResponse({
-      success: true,
-      data: {
-        id: profile._id.toString(),
-        firstName: profile.firstName,
-        lastName: profile.lastName,
-        email: profile.email,
-        phone: profile.phone,
-        dateOfBirth: profile.dateOfBirth,
-        address: profile.address,
-        profilePicture: profile.profilePicture,
-        joinDate: profile.joinDate,
-        membershipStatus: profile.membershipStatus,
-        teams: profile.teams || [],
-        skills: profile.skills || [],
-        interests: profile.interests || [],
-        bio: profile.bio || ''
-      }
-    }, 200);
-
-  } catch (error) {
-    console.error('Error fetching profile:', error);
-    return createCorsResponse(
-      { success: false, message: 'Failed to fetch profile' },
-      500
-    );
-  }
-}
-
-export async function PUT(request: NextRequest) {
-  try {
-    const mongoose = await connectDB();
-    const db = mongoose.connection.db;
+    const body = await request.json();
+    console.log('🟢 Request body:', JSON.stringify(body, null, 2));
     
     const { 
       userId,
@@ -93,44 +38,57 @@ export async function PUT(request: NextRequest) {
       profilePicture,
       skills,
       interests,
-      bio
-    } = await request.json();
+      bio,
+      kinName,
+      kinPhone,
+      kinRelationship
+    } = body;
 
     if (!userId) {
-      return createCorsResponse(
+      console.log('❌ No userId provided');
+      return NextResponse.json(
         { success: false, message: 'User ID is required' },
-        400
+        { status: 400, headers: corsHeaders }
       );
     }
 
-    const updateData: any = {
-      firstName,
-      lastName,
-      email,
-      phone,
-      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
-      address,
-      profilePicture,
-      skills: skills || [],
-      interests: interests || [],
-      bio: bio || '',
-      updatedAt: new Date()
-    };
+    console.log('🟢 Connecting to database...');
+    const mongoose = await connectDB();
+    const db = mongoose.connection.db;
 
-    // Remove undefined values
-    Object.keys(updateData).forEach(key => 
-      updateData[key] === undefined && delete updateData[key]
-    );
+    const updateData: any = {};
+    
+    // Only include fields that are provided
+    if (firstName !== undefined) updateData.firstName = firstName;
+    if (lastName !== undefined) updateData.lastName = lastName;
+    if (email !== undefined) updateData.email = email;
+    if (phone !== undefined) updateData.phone = phone;
+    if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
+    if (address !== undefined) updateData.address = address;
+    if (profilePicture !== undefined) updateData.profilePicture = profilePicture;
+    if (skills !== undefined) updateData.skills = skills || [];
+    if (interests !== undefined) updateData.interests = interests || [];
+    if (bio !== undefined) updateData.bio = bio || '';
+    if (kinName !== undefined) updateData.kinName = kinName;
+    if (kinPhone !== undefined) updateData.kinPhone = kinPhone;
+    if (kinRelationship !== undefined) updateData.kinRelationship = kinRelationship;
+    
+    updateData.updatedAt = new Date();
+
+    console.log('🟢 Updating with data:', JSON.stringify(updateData, null, 2));
 
     const result = await db.collection('members').updateOne(
       { _id: new ObjectId(userId) },
       { $set: updateData }
     );
 
+    console.log('🟢 Update result:', { matchedCount: result.matchedCount, modifiedCount: result.modifiedCount });
+
     if (result.matchedCount === 0) {
-      return createCorsResponse(
+      console.log('❌ Profile not found');
+      return NextResponse.json(
         { success: false, message: 'Profile not found' },
-        404
+        { status: 404, headers: corsHeaders }
       );
     }
 
@@ -138,20 +96,22 @@ export async function PUT(request: NextRequest) {
       _id: new ObjectId(userId)
     });
 
-    return createCorsResponse({
+    console.log('✅ Profile updated successfully');
+    return NextResponse.json({
       success: true,
+      message: 'Profile updated successfully',
       data: {
-        id: updatedProfile._id.toString(),
+        id: updatedProfile?._id.toString(),
         ...updatedProfile,
         _id: undefined
       }
-    }, 200);
+    }, { status: 200, headers: corsHeaders });
 
   } catch (error) {
-    console.error('Error updating profile:', error);
-    return createCorsResponse(
-      { success: false, message: 'Failed to update profile' },
-      500
+    console.error('❌ Error updating profile:', error);
+    return NextResponse.json(
+      { success: false, message: 'Failed to update profile', error: String(error) },
+      { status: 500, headers: corsHeaders }
     );
   }
 }
