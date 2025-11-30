@@ -801,7 +801,7 @@ export default function JuniorChurchPage() {
                     <div key={record.id} className="p-4 border rounded-lg">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h4 className="font-medium">{member?.firstName} {member?.lastName}</h4>
+                          <h4 className="font-medium text-gray-900">{member?.firstName} {member?.lastName}</h4>
                           <p className="text-sm text-gray-600">Class: {member?.class}</p>
                         </div>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -815,20 +815,20 @@ export default function JuniorChurchPage() {
                       
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3 text-sm">
                         <div>
-                          <p className="text-gray-500">Dropped off by</p>
-                          <p>{record.dropoffBy}</p>
+                          <p className="text-gray-500 text-xs font-medium">Dropped off by</p>
+                          <p className="text-gray-900 font-medium">{record.dropoffBy}</p>
                         </div>
                         <div>
-                          <p className="text-gray-500">Drop-off time</p>
-                          <p>{record.dropoffTime ? new Date(record.dropoffTime).toLocaleTimeString() : '-'}</p>
+                          <p className="text-gray-500 text-xs font-medium">Drop-off time</p>
+                          <p className="text-gray-900 font-medium">{record.dropoffTime ? new Date(record.dropoffTime).toLocaleTimeString() : '-'}</p>
                         </div>
                         <div>
-                          <p className="text-gray-500">Picked up by</p>
-                          <p>{record.pickedUpBy || '-'}</p>
+                          <p className="text-gray-500 text-xs font-medium">Picked up by</p>
+                          <p className="text-gray-900 font-medium">{record.pickedUpBy || '-'}</p>
                         </div>
                         <div>
-                          <p className="text-gray-500">Pick-up time</p>
-                          <p>{record.pickupTime ? new Date(record.pickupTime).toLocaleTimeString() : '-'}</p>
+                          <p className="text-gray-500 text-xs font-medium">Pick-up time</p>
+                          <p className="text-gray-900 font-medium">{record.pickupTime ? new Date(record.pickupTime).toLocaleTimeString() : '-'}</p>
                         </div>
                       </div>
                     </div>

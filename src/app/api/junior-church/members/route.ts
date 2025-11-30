@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectMongoDB from '@/lib/mongodb'
-import { JuniorMember, JuniorAttendance } from '@/lib/models'
+import { JuniorMember, JuniorAttendance, ChildWard, Member } from '@/lib/models'
 import { getCorsHeaders } from '@/lib/cors'
 
 // Get all junior church members
@@ -32,13 +32,57 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    const members = await JuniorMember.find(query).sort({ firstName: 1, lastName: 1 })
+    // Get junior members from JuniorMember collection
+    const juniorMembers = await JuniorMember.find(query).sort({ firstName: 1, lastName: 1 })
+    
+    // ALSO get children from ChildWard collection (mobile app children)
+    const childWards = await ChildWard.find({ isActive: true }).populate('parentId')
+    
+    // Convert ChildWard to JuniorMember format
+    const convertedChildren = await Promise.all(
+      childWards.map(async (child: any) => {
+        const parent = child.parentId
+        const age = calculateAge(new Date(child.dateOfBirth))
+        const childClass = determineClass(age)
+        
+        return {
+          _id: child._id,
+          firstName: child.firstName,
+          lastName: child.lastName,
+          dateOfBirth: child.dateOfBirth,
+          age: age,
+          parentName: parent ? `${parent.firstName} ${parent.lastName}` : 'Unknown',
+          parentPhone: parent?.phone || 'N/A',
+          parentEmail: parent?.email || 'N/A',
+          emergencyContact: child.emergencyContact || {
+            name: parent ? `${parent.firstName} ${parent.lastName}` : 'Unknown',
+            phone: parent?.phone || 'N/A',
+            relationship: 'Parent'
+          },
+          allergies: child.allergies?.join(', ') || '',
+          medicalNotes: child.specialNeeds || '',
+          pickupAuthority: [parent ? `${parent.firstName} ${parent.lastName}` : 'Unknown'],
+          class: childClass,
+          isActive: child.isActive,
+          registeredAt: child.createdAt,
+          barcodeId: `CW${child._id.toString().slice(-8).toUpperCase()}`, // Generate barcode from ID
+          source: 'mobile_app' // Flag to indicate this came from mobile app
+        }
+      })
+    )
+    
+    // Merge both lists
+    const allMembers = [...juniorMembers, ...convertedChildren]
 
     return NextResponse.json(
       {
         success: true,
-        data: members,
-        total: members.length
+        data: allMembers,
+        total: allMembers.length,
+        breakdown: {
+          juniorChurch: juniorMembers.length,
+          mobileApp: convertedChildren.length
+        }
       },
       { 
         status: 200,
@@ -289,4 +333,27 @@ export async function DELETE(request: NextRequest) {
       }
     )
   }
+}
+
+// Helper function to calculate age from date of birth
+const calculateAge = (dateOfBirth: Date): number => {
+  const today = new Date()
+  const birthDate = new Date(dateOfBirth)
+  let age = today.getFullYear() - birthDate.getFullYear()
+  const monthDiff = today.getMonth() - birthDate.getMonth()
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--
+  }
+  
+  return age
+}
+
+// Helper function to determine class based on age
+const determineClass = (age: number): 'nursery' | 'toddlers' | 'preschool' | 'elementary' | 'teens' => {
+  if (age < 2) return 'nursery'
+  if (age < 4) return 'toddlers'
+  if (age < 6) return 'preschool'
+  if (age < 13) return 'elementary'
+  return 'teens'
 }

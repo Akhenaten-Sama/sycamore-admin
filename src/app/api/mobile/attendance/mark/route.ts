@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
-import { AttendanceRecord, Event, Member, ChildWard } from '@/lib/models'
+import { AttendanceRecord, Event, Member, ChildWard, JuniorMember, JuniorAttendance } from '@/lib/models'
 import { getCorsHeaders, corsResponse, handlePreflight } from '@/lib/cors'
 
 export async function OPTIONS(request: NextRequest) {
@@ -82,14 +82,14 @@ export async function POST(request: NextRequest) {
     // Mark attendance for children/wards if provided
     if (childrenIds.length > 0) {
       for (const childId of childrenIds) {
-        // Verify child belongs to this parent
-        const child = await ChildWard.findOne({
+        // First try to find as JuniorMember (preferred)
+        const juniorMember = await JuniorMember.findOne({
           _id: childId,
-          parentId: userId,
+          parentPhone: user.phone,
           isActive: true
         })
 
-        if (child) {
+        if (juniorMember) {
           // Check if child already has attendance for this event today
           const existingChildAttendance = await AttendanceRecord.findOne({
             childId: childId,
@@ -112,9 +112,65 @@ export async function POST(request: NextRequest) {
             await childAttendance.save()
             attendanceRecords.push({
               type: 'child',
-              name: `${child.firstName} ${child.lastName}`,
+              name: `${juniorMember.firstName} ${juniorMember.lastName}`,
               recordId: childAttendance._id
             })
+
+            // ALSO create Junior Church attendance record for Live Dashboard
+            const existingJuniorAttendance = await JuniorAttendance.findOne({
+              juniorMemberId: childId,
+              date: {
+                $gte: new Date(now.toDateString())
+              }
+            })
+
+            if (!existingJuniorAttendance) {
+              const juniorAttendance = new JuniorAttendance({
+                juniorMemberId: childId,
+                date: now,
+                dropoffTime: now,
+                dropoffBy: `${user.firstName} ${user.lastName}`,
+                status: 'dropped_off',
+                verifiedById: userId,
+                notes: `Mobile app check-in for event: ${event.name}`
+              })
+              await juniorAttendance.save()
+            }
+          }
+        } else {
+          // Fallback to ChildWard if not found as JuniorMember
+          const child = await ChildWard.findOne({
+            _id: childId,
+            parentId: userId,
+            isActive: true
+          })
+
+          if (child) {
+            const existingChildAttendance = await AttendanceRecord.findOne({
+              childId: childId,
+              eventId,
+              date: {
+                $gte: new Date(now.toDateString())
+              }
+            })
+
+            if (!existingChildAttendance) {
+              const childAttendance = new AttendanceRecord({
+                memberId: userId,
+                childId: childId,
+                eventId,
+                date: now,
+                status: 'present',
+                checkedInAt: now,
+                notes: `Child check-in by parent via mobile app`
+              })
+              await childAttendance.save()
+              attendanceRecords.push({
+                type: 'child',
+                name: `${child.firstName} ${child.lastName}`,
+                recordId: childAttendance._id
+              })
+            }
           }
         }
       }

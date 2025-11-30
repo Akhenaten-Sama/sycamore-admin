@@ -80,16 +80,13 @@ export async function GET(request: NextRequest) {
     
     let query: any = {}
     
-    if (type === 'upcoming') {
-      query.date = { $gte: new Date() }
-    } else if (type === 'past') {
-      query.date = { $lt: new Date() }
-    }
+    // Don't filter by date in the initial query - get all events
+    // We'll filter after generating recurring instances
     
     // Get events more efficiently
     const baseEvents = await Event.find(query)
-      .sort({ date: type === 'upcoming' ? 1 : -1 })
-      .limit(type === 'past' ? 20 : 50) // Reduce limit for better performance
+      .sort({ date: 1 })
+      .limit(100) // Get more base events to generate recurring instances
 
     // Generate recurring event instances more efficiently
     const allEvents = []
@@ -98,60 +95,71 @@ export async function GET(request: NextRequest) {
     endDate.setDate(endDate.getDate() + 90) // Generate events for next 3 months only
 
     for (const event of baseEvents) {
-      if (event.isRecurring && event.recurringType && type === 'upcoming') {
-        // Add the original event if it's in the future
-        if (new Date(event.date) >= currentDate) {
-          allEvents.push({
-            ...event.toObject(),
-            isRecurringInstance: false,
-            originalEventId: event._id
-          })
-        }
+      if (event.isRecurring && event.recurringType) {
+        // Add the original event
+        allEvents.push({
+          ...event.toObject(),
+          isRecurringInstance: false,
+          originalEventId: event._id
+        })
         
-        // Generate recurring instances (limited to next 3 months)
+        // Generate recurring instances for next 3 months
         const instances = generateRecurringEvents(event, currentDate, endDate)
         allEvents.push(...instances)
       } else {
         allEvents.push(event)
       }
-    }    // Sort and paginate events
-    allEvents.sort((a, b) => {
+    }
+    
+    // NOW filter by type after generating recurring instances
+    const filteredEvents = allEvents.filter(event => {
+      const eventDate = new Date(event.date)
+      if (type === 'upcoming') {
+        return eventDate >= currentDate
+      } else if (type === 'past') {
+        return eventDate < currentDate
+      }
+      return true
+    })    // Sort events
+    filteredEvents.sort((a, b) => {
       const dateA = new Date(a.date).getTime()
       const dateB = new Date(b.date).getTime()
       return type === 'upcoming' ? dateA - dateB : dateB - dateA
     })
 
     // Calculate pagination
-    const totalEvents = allEvents.length
+    const totalEvents = filteredEvents.length
     const totalPages = Math.ceil(totalEvents / validLimit)
     const startIndex = (validPage - 1) * validLimit
     const endIndex = startIndex + validLimit
-    const paginatedEvents = allEvents.slice(startIndex, endIndex)
+    const paginatedEvents = filteredEvents.slice(startIndex, endIndex)
     
     // Get user's attendance for these events (only if authenticated)
     if (member) {
-      // For attendance lookup, use original event IDs (base events only)
-      // Recurring instances don't have their own attendance records
-      const baseEventIds = paginatedEvents.map(event => {
-        if (event.isRecurringInstance && event.originalEventId) {
-          return event.originalEventId
-        }
-        return event._id
-      }).filter(id => id && typeof id === 'string' && /^[0-9a-fA-F]{24}$/.test(id)) // Only valid ObjectIds
-      
+      // For recurring events, we need date-specific attendance lookup
       const attendanceRecords = await AttendanceRecord.find({
-        memberId: member._id,
-        eventId: { $in: baseEventIds }
+        memberId: member._id
       })
       
+      // Build a map of attendance by event and date
       attendanceRecords.forEach(record => {
-        // Map attendance to both base event and its recurring instances
-        const baseEventId = record.eventId.toString()
-        attendanceMap.set(baseEventId, record.status)
+        const eventIdStr = record.eventId.toString()
+        const recordDate = new Date(record.date).toISOString().split('T')[0]
         
-        // Also map to recurring instances of this base event
+        // Check each paginated event
         paginatedEvents.forEach(event => {
-          if (event.originalEventId && event.originalEventId.toString() === baseEventId) {
+          let matchesEvent = false
+          
+          if (event.isRecurringInstance && event.originalEventId) {
+            // For recurring instances, match by originalEventId and date
+            const eventDate = new Date(event.date).toISOString().split('T')[0]
+            matchesEvent = event.originalEventId.toString() === eventIdStr && eventDate === recordDate
+          } else {
+            // For base events, match by _id
+            matchesEvent = event._id.toString() === eventIdStr
+          }
+          
+          if (matchesEvent) {
             attendanceMap.set(event._id, record.status)
           }
         })
@@ -226,90 +234,120 @@ export async function POST(request: NextRequest) {
     const { user, member } = await verifyMobileToken(request)
     
     if (!member) {
-      return NextResponse.json(
+      return createCorsResponse(
         { message: 'Member profile not found' },
-        { status: 404 }
+        404
       )
     }
 
     const memberData = member as any
-    const { eventId } = await request.json()
+    const { eventId, eventDate } = await request.json()
     
     if (!eventId) {
-      return NextResponse.json(
+      return createCorsResponse(
         { message: 'Event ID is required' },
-        { status: 400 }
+        400
       )
     }
     
-    // Find the event
-    const event = await Event.findById(eventId)
+    // Handle recurring event instances - extract base event ID
+    let baseEventId = eventId
+    let targetDate = eventDate ? new Date(eventDate) : null
+    
+    // If eventId contains underscore, it's a recurring instance
+    if (typeof eventId === 'string' && eventId.includes('_')) {
+      const parts = eventId.split('_')
+      baseEventId = parts[0]
+      if (!targetDate && parts[1]) {
+        targetDate = new Date(parts[1])
+      }
+    }
+    
+    // Find the base event
+    const event = await Event.findById(baseEventId)
     if (!event) {
-      return NextResponse.json(
+      return createCorsResponse(
         { message: 'Event not found' },
-        { status: 404 }
+        404
       )
     }
     
-    // Check if user can check in (within 2 hours of event start)
-    const eventTime = new Date(event.date)
+    // Use the target date if provided, otherwise use event's original date
+    const eventTime = targetDate || new Date(event.date)
     const now = new Date()
     const twoHoursBefore = new Date(eventTime.getTime() - 2 * 60 * 60 * 1000)
     const twoHoursAfter = new Date(eventTime.getTime() + 2 * 60 * 60 * 1000)
     
     if (now < twoHoursBefore || now > twoHoursAfter) {
-      return NextResponse.json(
+      return createCorsResponse(
         { message: 'Check-in is only available 2 hours before to 2 hours after the event' },
-        { status: 400 }
+        400
       )
     }
     
-    // Check if already checked in
-    const existingRecord = await AttendanceRecord.findOne({
+    // For recurring events, check attendance for the specific date
+    // For non-recurring events, check by eventId only
+    const attendanceQuery: any = {
       memberId: memberData._id,
-      eventId: eventId
-    })
+      eventId: baseEventId
+    }
+    
+    if (event.isRecurring && targetDate) {
+      // Check if already checked in on this specific date
+      const startOfDay = new Date(targetDate)
+      startOfDay.setHours(0, 0, 0, 0)
+      const endOfDay = new Date(targetDate)
+      endOfDay.setHours(23, 59, 59, 999)
+      
+      attendanceQuery.date = {
+        $gte: startOfDay,
+        $lte: endOfDay
+      }
+    }
+    
+    const existingRecord = await AttendanceRecord.findOne(attendanceQuery)
     
     if (existingRecord) {
-      return NextResponse.json(
+      return createCorsResponse(
         { message: 'Already checked in to this event' },
-        { status: 400 }
+        400
       )
     }
     
-    // Create attendance record
+    // Create attendance record with the specific date
     const attendanceRecord = new AttendanceRecord({
       memberId: memberData._id,
-      eventId: eventId,
-      date: event.date,
+      eventId: baseEventId, // Store base event ID
+      date: targetDate || event.date, // Store the specific occurrence date
       status: 'present',
       checkedInAt: new Date()
     })
     
     await attendanceRecord.save()
     
-    return NextResponse.json({
+    return createCorsResponse({
       success: true,
       message: 'Successfully checked in to event',
       data: {
         eventName: event.name,
+        eventDate: targetDate || event.date,
         checkedInAt: attendanceRecord.checkedInAt
       }
-    })
+    }, 200)
 
   } catch (error) {
     console.error('Mobile event check-in error:', error)
     
     if (error instanceof Error && error.message.includes('token')) {
-      return NextResponse.json(
+      return createCorsResponse(
         { message: error.message },
-        { status: 401 }
+        401
       )
     }
     
-    return NextResponse.json(
+    return createCorsResponse(
       { message: 'Failed to check in to event' },
-      { status: 500 }
+      500
     )
   }
 }
