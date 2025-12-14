@@ -26,8 +26,16 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB()
     
-    // Only return active forms for public access
-    const forms = await Form.find({ isActive: true }).sort({ createdAt: -1 })
+    const { searchParams } = new URL(request.url)
+    const category = searchParams.get('category')
+    
+    // Build query - only return active forms for public access
+    const query: any = { isActive: true }
+    if (category) {
+      query.category = category
+    }
+    
+    const forms = await Form.find(query).sort({ createdAt: -1 })
 
     const mobileForms = forms.map((form: IForm) => ({
       id: form._id,

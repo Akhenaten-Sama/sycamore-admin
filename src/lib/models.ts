@@ -707,6 +707,47 @@ export const RequestSubmission: Model<IRequestSubmission> = mongoose.models.Requ
 export const Form: Model<IForm> = mongoose.models.Form || mongoose.model<IForm>('Form', formSchema)
 export const ChildWard: Model<IChildWard> = mongoose.models.ChildWard || mongoose.model<IChildWard>('ChildWard', childWardSchema)
 
+// Testimony/Praise Report Schema
+export interface ITestimony extends Document {
+  title: string
+  testimony: string
+  category: 'Healing' | 'Financial Breakthrough' | 'Salvation' | 'Deliverance' | 'Answered Prayer' | 'General'
+  submittedBy: mongoose.Types.ObjectId
+  submitterName: string
+  submitterEmail?: string
+  isApproved: boolean
+  isPublic: boolean
+  approvedBy?: mongoose.Types.ObjectId
+  approvedAt?: Date
+  rejectionReason?: string
+  likes?: number
+  createdAt: Date
+  updatedAt: Date
+}
+
+const testimonySchema = new Schema<ITestimony>({
+  title: { type: String, required: true },
+  testimony: { type: String, required: true },
+  category: { 
+    type: String, 
+    enum: ['Healing', 'Financial Breakthrough', 'Salvation', 'Deliverance', 'Answered Prayer', 'General'],
+    default: 'General'
+  },
+  submittedBy: { type: Schema.Types.ObjectId, ref: 'Member', required: true },
+  submitterName: { type: String, required: true },
+  submitterEmail: { type: String },
+  isApproved: { type: Boolean, default: false },
+  isPublic: { type: Boolean, default: true },
+  approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  approvedAt: { type: Date },
+  rejectionReason: { type: String },
+  likes: { type: Number, default: 0 }
+}, {
+  timestamps: true
+})
+
+export const Testimony: Model<ITestimony> = mongoose.models.Testimony || mongoose.model<ITestimony>('Testimony', testimonySchema)
+
 // Junior Church Member Schema
 export interface IJuniorMember extends Document {
   firstName: string

@@ -25,8 +25,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const date = searchParams.get('date') // Optional: get devotional for specific date
     const limit = parseInt(searchParams.get('limit') || '7') // Default to one week
+    const userId = searchParams.get('userId') // User ID for read status (for future use)
     
-    console.log('📖 Devotionals request - date:', date, 'limit:', limit)
+    console.log('📖 Devotionals request - date:', date, 'limit:', limit, 'userId:', userId)
+
+    // Note: DevotionalProgress model not yet implemented
+    // Read status tracking will be added in future update
+    const userReadDevotionals: string[] = []
 
     // Create mock devotionals data for development
     const today = new Date()
@@ -36,8 +41,10 @@ export async function GET(request: NextRequest) {
       const devotionalDate = new Date(today)
       devotionalDate.setDate(devotionalDate.getDate() - i)
       
+      const devotionalId = `devotional_${i + 1}`
       const devotionalData = {
-        _id: `devotional_${i + 1}`,
+        _id: devotionalId,
+        id: devotionalId,
         title: getDailyTitle(i),
         verse: getDailyVerse(i),
         content: getDailyContent(i),
@@ -49,7 +56,8 @@ export async function GET(request: NextRequest) {
         likes: Math.floor(Math.random() * 50) + 10,
         comments: Math.floor(Math.random() * 20) + 3,
         readTime: Math.floor(Math.random() * 3) + 3, // 3-5 minutes
-        questions: getDailyQuestions(i)
+        questions: getDailyQuestions(i),
+        isRead: userId ? userReadDevotionals.includes(devotionalId) : false
       }
       
       devotionals.push(devotionalData)
