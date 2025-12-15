@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Modal, OnboardingTour } from '@/components/common'
+import { givingTourSteps } from '@/components/common/tourSteps'
 import { 
   Plus, 
   Search, 
@@ -239,14 +241,17 @@ export default function GivingPage() {
             <h1 className="text-3xl font-bold text-gray-900">Finance & Giving</h1>
             <p className="text-gray-600 mt-1">Track and manage church finances and giving records</p>
           </div>
-          <Button onClick={handleCreateGiving} className="flex items-center gap-2">
+          <Button onClick={handleCreateGiving} className="flex items-center gap-2" data-tour="record-donation">
             <Plus className="w-4 h-4" />
             Record Giving
           </Button>
         </div>
 
+        {/* Onboarding Tour */}
+        <OnboardingTour steps={givingTourSteps} storageKey="giving-tour-completed" />
+
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4" data-tour="giving-stats">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -373,7 +378,7 @@ export default function GivingPage() {
         </Card>
 
         {/* Givings Table */}
-        <Card>
+        <Card data-tour="donation-history">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="w-5 h-5" />
@@ -480,171 +485,169 @@ export default function GivingPage() {
         </Card>
 
         {/* Giving Modal */}
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-              <h2 className="text-xl font-semibold mb-4">
-                {isEditing ? 'Edit Giving Record' : 'Record New Giving'}
-              </h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Member *
-                  </label>
-                  <select
-                    value={formData.memberId}
-                    onChange={(e) => setFormData(prev => ({ ...prev, memberId: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Select Member</option>
-                    {members.map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.firstName} {member.lastName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Amount *
-                  </label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.amount}
-                    onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
-                    placeholder="0.00"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Currency *
-                  </label>
-                  <select
-                    value={formData.currency}
-                    onChange={(e) => setFormData(prev => ({ ...prev, currency: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="USD">$ USD</option>
-                    <option value="NGN">₦ NGN</option>
-                    <option value="EUR">€ EUR</option>
-                    <option value="GBP">£ GBP</option>
-                    <option value="CAD">C$ CAD</option>
-                    <option value="GHS">GH₵ GHS</option>
-                    <option value="ZAR">R ZAR</option>
-                    <option value="KES">KSh KES</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Category *
-                  </label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as Giving['category'] }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="tithe">Tithe</option>
-                    <option value="offering">Offering</option>
-                    <option value="special_offering">Special Offering</option>
-                    <option value="building_fund">Building Fund</option>
-                    <option value="missions">Missions</option>
-                    <option value="youth">Youth Ministry</option>
-                    <option value="outreach">Community Outreach</option>
-                    <option value="special">Special Projects</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Payment Method *
-                  </label>
-                  <select
-                    value={formData.method}
-                    onChange={(e) => setFormData(prev => ({ ...prev, method: e.target.value as Giving['method'] }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="cash">Cash</option>
-                    <option value="card">Card</option>
-                    <option value="paystack">Paystack</option>
-                    <option value="bank_transfer">Bank Transfer</option>
-                    <option value="mobile_money">Mobile Money</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Date *
-                  </label>
-                  <Input
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Optional description"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    rows={2}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="isRecurring"
-                      checked={formData.isRecurring}
-                      onChange={(e) => setFormData(prev => ({ ...prev, isRecurring: e.target.checked }))}
-                      className="rounded"
-                    />
-                    <label htmlFor="isRecurring" className="text-sm text-gray-700">
-                      This is a recurring giving
-                    </label>
-                  </div>
-
-                  {formData.isRecurring && (
-                    <select
-                      value={formData.recurringFrequency || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, recurringFrequency: e.target.value as Giving['recurringFrequency'] }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Select Frequency</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="monthly">Monthly</option>
-                      <option value="yearly">Yearly</option>
-                    </select>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 mt-6">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsModalOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleSaveGiving}>
-                  {isEditing ? 'Update' : 'Record'} Giving
-                </Button>
-              </div>
+        <Modal
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          title={isEditing ? 'Edit Giving Record' : 'Record New Giving'}
+          size="md"
+          footer={
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setIsModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" form="giving-form">
+                {isEditing ? 'Update' : 'Record'} Giving
+              </Button>
+            </>
+          }
+        >
+          <form id="giving-form" onSubmit={(e) => { e.preventDefault(); handleSaveGiving(); }} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Member *
+              </label>
+              <select
+                value={formData.memberId}
+                onChange={(e) => setFormData(prev => ({ ...prev, memberId: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select Member</option>
+                {members.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.firstName} {member.lastName}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
-        )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Amount *
+              </label>
+              <Input
+                type="number"
+                step="0.01"
+                value={formData.amount}
+                onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                placeholder="0.00"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Currency *
+              </label>
+              <select
+                value={formData.currency}
+                onChange={(e) => setFormData(prev => ({ ...prev, currency: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="USD">$ USD</option>
+                <option value="NGN">₦ NGN</option>
+                <option value="EUR">€ EUR</option>
+                <option value="GBP">£ GBP</option>
+                <option value="CAD">C$ CAD</option>
+                <option value="GHS">GH₵ GHS</option>
+                <option value="ZAR">R ZAR</option>
+                <option value="KES">KSh KES</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Category *
+              </label>
+              <select
+                value={formData.category}
+                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as Giving['category'] }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="tithe">Tithe</option>
+                <option value="offering">Offering</option>
+                <option value="special_offering">Special Offering</option>
+                <option value="building_fund">Building Fund</option>
+                <option value="missions">Missions</option>
+                <option value="youth">Youth Ministry</option>
+                <option value="outreach">Community Outreach</option>
+                <option value="special">Special Projects</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Payment Method *
+              </label>
+              <select
+                value={formData.method}
+                onChange={(e) => setFormData(prev => ({ ...prev, method: e.target.value as Giving['method'] }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="cash">Cash</option>
+                <option value="card">Card</option>
+                <option value="paystack">Paystack</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="mobile_money">Mobile Money</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Date *
+              </label>
+              <Input
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Optional description"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows={2}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isRecurring"
+                  checked={formData.isRecurring}
+                  onChange={(e) => setFormData(prev => ({ ...prev, isRecurring: e.target.checked }))}
+                  className="rounded"
+                />
+                <label htmlFor="isRecurring" className="text-sm text-gray-700">
+                  This is a recurring giving
+                </label>
+              </div>
+
+              {formData.isRecurring && (
+                <select
+                  value={formData.recurringFrequency || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, recurringFrequency: e.target.value as Giving['recurringFrequency'] }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select Frequency</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              )}
+            </div>
+          </form>
+        </Modal>
       </div>
     </DashboardLayout>
   )

@@ -20,48 +20,95 @@ function getUserFromToken(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    await connectDB()
+    const mongoose = await connectDB()
+    const db = mongoose.connection.db
     
     const { searchParams } = new URL(request.url)
     const date = searchParams.get('date') // Optional: get devotional for specific date
     const limit = parseInt(searchParams.get('limit') || '7') // Default to one week
-    const userId = searchParams.get('userId') // User ID for read status (for future use)
+    const userId = searchParams.get('userId') // User ID for read status
     
     console.log('📖 Devotionals request - date:', date, 'limit:', limit, 'userId:', userId)
 
-    // Note: DevotionalProgress model not yet implemented
-    // Read status tracking will be added in future update
-    const userReadDevotionals: string[] = []
-
-    // Create mock devotionals data for development
-    const today = new Date()
-    const devotionals = []
-
-    for (let i = 0; i < limit; i++) {
-      const devotionalDate = new Date(today)
-      devotionalDate.setDate(devotionalDate.getDate() - i)
-      
-      const devotionalId = `devotional_${i + 1}`
-      const devotionalData = {
-        _id: devotionalId,
-        id: devotionalId,
-        title: getDailyTitle(i),
-        verse: getDailyVerse(i),
-        content: getDailyContent(i),
-        date: devotionalDate,
-        author: 'Pastor Johnson',
-        category: 'daily_bread',
-        readingPlan: 'Through the Bible in a Year',
-        tags: getDailyTags(i),
-        likes: Math.floor(Math.random() * 50) + 10,
-        comments: Math.floor(Math.random() * 20) + 3,
-        readTime: Math.floor(Math.random() * 3) + 3, // 3-5 minutes
-        questions: getDailyQuestions(i),
-        isRead: userId ? userReadDevotionals.includes(devotionalId) : false
+    // Get user's read devotionals from devotionalReadings collection
+    let userReadDates: string[] = []
+    if (userId) {
+      try {
+        const { ObjectId } = await import('mongodb')
+        const readings = await db.collection('devotionalReadings').find({
+          userId: new ObjectId(userId)
+        }).toArray()
+        
+        userReadDates = readings.map((r: any) => r.date)
+        console.log('📚 User read dates from DB:', userReadDates)
+      } catch (error) {
+        console.log('❌ Error fetching devotional readings:', error)
       }
-      
-      devotionals.push(devotionalData)
     }
+
+    // Fetch devotionals from database
+    const devotionalsFromDb = await db.collection('devotionals')
+      .find({ isActive: true })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .toArray()
+
+    console.log(`📖 Found ${devotionalsFromDb.length} devotionals in database`)
+
+    // Enhance devotionals with like/comment counts and user-specific data
+    const devotionals = await Promise.all(
+      devotionalsFromDb.map(async (devotional: any) => {
+        const devotionalId = devotional.id
+        
+        // Get real like count from database
+        const likeCount = await db.collection('devotionalLikes').countDocuments({
+          devotionalId
+        })
+        
+        // Get real comment count from database
+        const commentCount = await db.collection('devotionalComments').countDocuments({
+          devotionalId
+        })
+        
+        // Check if user liked this devotional (if userId provided)
+        let isLiked = false
+        if (userId) {
+          try {
+            const { ObjectId } = await import('mongodb')
+            const userLike = await db.collection('devotionalLikes').findOne({
+              devotionalId,
+              userId: new ObjectId(userId)
+            })
+            isLiked = !!userLike
+          } catch (error) {
+            console.log('❌ Error checking like status:', error)
+          }
+        }
+
+        // Check if user has read this devotional
+        const dateString = devotional.createdAt ? new Date(devotional.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+        const isRead = userReadDates.includes(dateString)
+        
+        return {
+          _id: devotional._id.toString(),
+          id: devotionalId,
+          title: devotional.title,
+          verse: devotional.verse,
+          content: devotional.content,
+          date: devotional.createdAt || new Date(),
+          author: devotional.author,
+          category: devotional.category,
+          readingPlan: devotional.readingPlan,
+          tags: devotional.tags || [],
+          likes: likeCount,
+          comments: commentCount,
+          isLiked: isLiked,
+          readTime: devotional.readTime,
+          questions: devotional.questions || [],
+          isRead: isRead
+        }
+      })
+    )
 
     // If specific date requested, filter to that date
     if (date) {
@@ -90,6 +137,165 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching devotionals:', error)
     return NextResponse.json(
       { message: 'Failed to fetch devotionals' },
+      { status: 500 }
+    )
+  }
+}
+
+// Create a new devotional
+export async function POST(request: NextRequest) {
+  try {
+    const mongoose = await connectDB()
+    const db = mongoose.connection.db
+    
+    const body = await request.json()
+    const { title, verse, content, author, category, readingPlan, tags, readTime, questions } = body
+
+    if (!title || !verse || !content) {
+      return NextResponse.json(
+        { success: false, message: 'Title, verse, and content are required' },
+        { status: 400 }
+      )
+    }
+
+    // Generate unique ID
+    const devotionalCount = await db.collection('devotionals').countDocuments()
+    const devotionalId = `devotional_${devotionalCount + 1}`
+
+    const newDevotional = {
+      id: devotionalId,
+      title,
+      verse,
+      content,
+      author: author || 'Pastor Johnson',
+      category: category || 'daily_bread',
+      readingPlan: readingPlan || 'Through the Bible in a Year',
+      tags: tags || [],
+      readTime: readTime || 5,
+      questions: questions || [],
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+
+    const result = await db.collection('devotionals').insertOne(newDevotional)
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        _id: result.insertedId,
+        ...newDevotional
+      },
+      message: 'Devotional created successfully'
+    }, { status: 201 })
+
+  } catch (error) {
+    console.error('Error creating devotional:', error)
+    return NextResponse.json(
+      { success: false, message: 'Failed to create devotional' },
+      { status: 500 }
+    )
+  }
+}
+
+// Update an existing devotional
+export async function PUT(request: NextRequest) {
+  try {
+    const mongoose = await connectDB()
+    const db = mongoose.connection.db
+    
+    const body = await request.json()
+    const { id, title, verse, content, author, category, readingPlan, tags, readTime, questions, isActive } = body
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, message: 'Devotional ID is required' },
+        { status: 400 }
+      )
+    }
+
+    const updateData: any = {
+      updatedAt: new Date()
+    }
+
+    if (title !== undefined) updateData.title = title
+    if (verse !== undefined) updateData.verse = verse
+    if (content !== undefined) updateData.content = content
+    if (author !== undefined) updateData.author = author
+    if (category !== undefined) updateData.category = category
+    if (readingPlan !== undefined) updateData.readingPlan = readingPlan
+    if (tags !== undefined) updateData.tags = tags
+    if (readTime !== undefined) updateData.readTime = readTime
+    if (questions !== undefined) updateData.questions = questions
+    if (isActive !== undefined) updateData.isActive = isActive
+
+    const result = await db.collection('devotionals').findOneAndUpdate(
+      { id },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    )
+
+    if (!result) {
+      return NextResponse.json(
+        { success: false, message: 'Devotional not found' },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: result,
+      message: 'Devotional updated successfully'
+    })
+
+  } catch (error) {
+    console.error('Error updating devotional:', error)
+    return NextResponse.json(
+      { success: false, message: 'Failed to update devotional' },
+      { status: 500 }
+    )
+  }
+}
+
+// Delete a devotional (soft delete by setting isActive to false)
+export async function DELETE(request: NextRequest) {
+  try {
+    const mongoose = await connectDB()
+    const db = mongoose.connection.db
+    
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, message: 'Devotional ID is required' },
+        { status: 400 }
+      )
+    }
+
+    // Soft delete - set isActive to false instead of removing
+    const result = await db.collection('devotionals').findOneAndUpdate(
+      { id },
+      { $set: { isActive: false, updatedAt: new Date() } },
+      { returnDocument: 'after' }
+    )
+
+    if (!result) {
+      return NextResponse.json(
+        { success: false, message: 'Devotional not found' },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Devotional deleted successfully'
+    })
+
+  } catch (error) {
+    console.error('Error deleting devotional:', error)
+    return NextResponse.json(
+      { success: false, message: 'Failed to delete devotional' },
       { status: 500 }
     )
   }

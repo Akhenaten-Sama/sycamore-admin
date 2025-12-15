@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Modal, OnboardingTour } from '@/components/common'
+import { eventsTourSteps } from '@/components/common/tourSteps'
 import { 
   Plus, 
   Search, 
@@ -190,15 +192,18 @@ export default function EventsPage() {
               <h1 className="text-2xl font-bold text-gray-900">Events</h1>
               <p className="text-gray-600">Manage church events and activities.</p>
             </div>
-            <Button onClick={handleAddEvent}>
+            <Button onClick={handleAddEvent} data-tour="create-event">
               <Plus className="h-4 w-4 mr-2" />
               Create Event
             </Button>
           </div>
         </div>
 
+        {/* Onboarding Tour */}
+        <OnboardingTour steps={eventsTourSteps} storageKey="events-tour-completed" />
+
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-3" data-tour="event-stats">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
@@ -252,7 +257,7 @@ export default function EventsPage() {
         </Card>
 
         {/* Events Table */}
-        <Card>
+        <Card data-tour="event-calendar">
           <CardHeader>
             <CardTitle>All Events ({filteredEvents.length})</CardTitle>
           </CardHeader>
@@ -365,13 +370,28 @@ export default function EventsPage() {
         </Card>
 
         {/* Add/Edit Event Modal */}
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <h2 className="text-xl font-semibold mb-4">
-                {isEditing ? 'Edit Event' : 'Create New Event'}
-              </h2>
-              <form onSubmit={handleSaveEvent} className="space-y-4">
+        <Modal
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          title={isEditing ? 'Edit Event' : 'Create New Event'}
+          size="lg"
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsModalOpen(false)}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" form="event-form" disabled={loading}>
+                {loading ? 'Saving...' : (isEditing ? 'Update Event' : 'Create Event')}
+              </Button>
+            </>
+          }
+        >
+          <form id="event-form" onSubmit={handleSaveEvent} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Event Name
@@ -474,23 +494,8 @@ export default function EventsPage() {
                     <span className="ml-2 text-sm text-gray-700">Recurring Event</span>
                   </label>
                 </div>
-                <div className="flex justify-end space-x-3 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsModalOpen(false)}
-                    disabled={loading}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={loading}>
-                    {loading ? 'Saving...' : (isEditing ? 'Update Event' : 'Create Event')}
-                  </Button>
-                </div>
               </form>
-            </div>
-          </div>
-        )}
+            </Modal>
       </div>
     </DashboardLayout>
   )

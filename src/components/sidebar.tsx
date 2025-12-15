@@ -127,6 +127,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         { name: 'Blog', href: '/blog', icon: FileText, permissions: ['blog.view'] },
         { name: 'Media Library', href: '/media', icon: Play, permissions: ['blog.view'] },
         { name: 'Gallery', href: '/gallery', icon: Image, permissions: ['blog.view'] },
+        { name: 'Devotionals', href: '/devotionals', icon: GraduationCap, permissions: ['blog.view'] },
+        { name: 'Praise Reports', href: '/testimonies', icon: Heart, permissions: ['blog.view'] },
       ]
     },
     {

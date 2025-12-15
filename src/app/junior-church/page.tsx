@@ -6,6 +6,7 @@ import { Breadcrumbs } from '@/components/breadcrumbs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Modal } from '@/components/common'
 import { 
   Plus, 
   Search, 
@@ -846,195 +847,193 @@ export default function JuniorChurchPage() {
         )}
 
         {/* Member Modal */}
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <h2 className="text-xl font-semibold mb-4">
-                {isEditing ? 'Edit Child Registration' : 'Register New Child'}
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    First Name *
-                  </label>
-                  <Input
-                    value={formData.firstName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                    placeholder="Child's first name"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Last Name *
-                  </label>
-                  <Input
-                    value={formData.lastName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                    placeholder="Child's last name"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Date of Birth *
-                  </label>
-                  <Input
-                    type="date"
-                    value={formData.dateOfBirth}
-                    onChange={(e) => setFormData(prev => ({ ...prev, dateOfBirth: e.target.value }))}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Class *
-                  </label>
-                  <select
-                    value={formData.class}
-                    onChange={(e) => setFormData(prev => ({ ...prev, class: e.target.value as JuniorMember['class'] }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="nursery">Nursery (0-2 years)</option>
-                    <option value="toddlers">Toddlers (2-4 years)</option>
-                    <option value="preschool">Preschool (4-6 years)</option>
-                    <option value="elementary">Elementary (6-12 years)</option>
-                    <option value="teens">Teens (13+ years)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Parent/Guardian Name *
-                  </label>
-                  <Input
-                    value={formData.parentName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, parentName: e.target.value }))}
-                    placeholder="Primary parent/guardian"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Parent Phone *
-                  </label>
-                  <Input
-                    value={formData.parentPhone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, parentPhone: e.target.value }))}
-                    placeholder="+1234567890"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Parent Email
-                  </label>
-                  <Input
-                    type="email"
-                    value={formData.parentEmail}
-                    onChange={(e) => setFormData(prev => ({ ...prev, parentEmail: e.target.value }))}
-                    placeholder="parent@email.com"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Emergency Contact Name *
-                  </label>
-                  <Input
-                    value={formData.emergencyContactName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, emergencyContactName: e.target.value }))}
-                    placeholder="Emergency contact name"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Emergency Contact Phone *
-                  </label>
-                  <Input
-                    value={formData.emergencyContactPhone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, emergencyContactPhone: e.target.value }))}
-                    placeholder="+1234567890"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Relationship *
-                  </label>
-                  <Input
-                    value={formData.emergencyContactRelationship}
-                    onChange={(e) => setFormData(prev => ({ ...prev, emergencyContactRelationship: e.target.value }))}
-                    placeholder="Father, Mother, Grandparent, etc."
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Authorized Pickup Persons *
-                  </label>
-                  <Input
-                    value={formData.pickupAuthority}
-                    onChange={(e) => setFormData(prev => ({ ...prev, pickupAuthority: e.target.value }))}
-                    placeholder="John Doe, Jane Doe, Grandma Smith (comma separated)"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    List all people authorized to pick up this child
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Allergies
-                  </label>
-                  <Input
-                    value={formData.allergies}
-                    onChange={(e) => setFormData(prev => ({ ...prev, allergies: e.target.value }))}
-                    placeholder="Peanuts, shellfish, etc."
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Medical Notes
-                  </label>
-                  <Input
-                    value={formData.medicalNotes}
-                    onChange={(e) => setFormData(prev => ({ ...prev, medicalNotes: e.target.value }))}
-                    placeholder="Medications, conditions, etc."
-                  />
-                </div>
-
-                <div className="md:col-span-2 flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="isActive"
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
-                    className="rounded"
-                  />
-                  <label htmlFor="isActive" className="text-sm text-gray-700">
-                    Active registration
-                  </label>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 mt-6">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsModalOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleSaveMember}>
-                  {isEditing ? 'Update' : 'Register'} Child
-                </Button>
-              </div>
+        <Modal
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          title={isEditing ? 'Edit Child Registration' : 'Register New Child'}
+          size="lg"
+          footer={
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setIsModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" form="junior-member-form">
+                {isEditing ? 'Update' : 'Register'} Child
+              </Button>
+            </>
+          }
+        >
+          <form id="junior-member-form" onSubmit={(e) => { e.preventDefault(); handleSaveMember(); }} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                First Name *
+              </label>
+              <Input
+                value={formData.firstName}
+                onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                placeholder="Child's first name"
+              />
             </div>
-          </div>
-        )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Last Name *
+              </label>
+              <Input
+                value={formData.lastName}
+                onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                placeholder="Child's last name"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Date of Birth *
+              </label>
+              <Input
+                type="date"
+                value={formData.dateOfBirth}
+                onChange={(e) => setFormData(prev => ({ ...prev, dateOfBirth: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Class *
+              </label>
+              <select
+                value={formData.class}
+                onChange={(e) => setFormData(prev => ({ ...prev, class: e.target.value as JuniorMember['class'] }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="nursery">Nursery (0-2 years)</option>
+                <option value="toddlers">Toddlers (2-4 years)</option>
+                <option value="preschool">Preschool (4-6 years)</option>
+                <option value="elementary">Elementary (6-12 years)</option>
+                <option value="teens">Teens (13+ years)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Parent/Guardian Name *
+              </label>
+              <Input
+                value={formData.parentName}
+                onChange={(e) => setFormData(prev => ({ ...prev, parentName: e.target.value }))}
+                placeholder="Primary parent/guardian"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Parent Phone *
+              </label>
+              <Input
+                value={formData.parentPhone}
+                onChange={(e) => setFormData(prev => ({ ...prev, parentPhone: e.target.value }))}
+                placeholder="+1234567890"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Parent Email
+              </label>
+              <Input
+                type="email"
+                value={formData.parentEmail}
+                onChange={(e) => setFormData(prev => ({ ...prev, parentEmail: e.target.value }))}
+                placeholder="parent@email.com"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Emergency Contact Name *
+              </label>
+              <Input
+                value={formData.emergencyContactName}
+                onChange={(e) => setFormData(prev => ({ ...prev, emergencyContactName: e.target.value }))}
+                placeholder="Emergency contact name"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Emergency Contact Phone *
+              </label>
+              <Input
+                value={formData.emergencyContactPhone}
+                onChange={(e) => setFormData(prev => ({ ...prev, emergencyContactPhone: e.target.value }))}
+                placeholder="+1234567890"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Relationship *
+              </label>
+              <Input
+                value={formData.emergencyContactRelationship}
+                onChange={(e) => setFormData(prev => ({ ...prev, emergencyContactRelationship: e.target.value }))}
+                placeholder="Father, Mother, Grandparent, etc."
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Authorized Pickup Persons *
+              </label>
+              <Input
+                value={formData.pickupAuthority}
+                onChange={(e) => setFormData(prev => ({ ...prev, pickupAuthority: e.target.value }))}
+                placeholder="John Doe, Jane Doe, Grandma Smith (comma separated)"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                List all people authorized to pick up this child
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Allergies
+              </label>
+              <Input
+                value={formData.allergies}
+                onChange={(e) => setFormData(prev => ({ ...prev, allergies: e.target.value }))}
+                placeholder="Peanuts, shellfish, etc."
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Medical Notes
+              </label>
+              <Input
+                value={formData.medicalNotes}
+                onChange={(e) => setFormData(prev => ({ ...prev, medicalNotes: e.target.value }))}
+                placeholder="Medications, conditions, etc."
+              />
+            </div>
+
+            <div className="md:col-span-2 flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="isActive"
+                checked={formData.isActive}
+                onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
+                className="rounded"
+              />
+              <label htmlFor="isActive" className="text-sm text-gray-700">
+                Active registration
+              </label>
+            </div>
+          </form>
+        </Modal>
       </div>
     </DashboardLayout>
   )

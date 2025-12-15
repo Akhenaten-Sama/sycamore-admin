@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Modal } from '@/components/common'
 import { 
   Plus, 
   Search, 
@@ -345,13 +346,28 @@ export default function BlogPage() {
         </Card>
 
         {/* Add/Edit Post Modal */}
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-              <h2 className="text-xl font-semibold mb-4">
-                {isEditing ? 'Edit Post' : 'Create New Post'}
-              </h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
+        <Modal
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          title={isEditing ? 'Edit Post' : 'Create New Post'}
+          size="xl"
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsModalOpen(false)}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" form="blog-form" disabled={loading}>
+                {loading ? 'Saving...' : (isEditing ? 'Update Post' : 'Create Post')}
+              </Button>
+            </>
+          }
+        >
+          <form id="blog-form" onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Title
@@ -444,23 +460,8 @@ export default function BlogPage() {
                     <span className="ml-2 text-sm text-gray-700">Save as Draft</span>
                   </label>
                 </div>
-                <div className="flex justify-end space-x-3 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsModalOpen(false)}
-                    disabled={loading}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={loading}>
-                    {loading ? 'Saving...' : (isEditing ? 'Update Post' : 'Create Post')}
-                  </Button>
-                </div>
               </form>
-            </div>
-          </div>
-        )}
+            </Modal>
       </div>
     </DashboardLayout>
   )

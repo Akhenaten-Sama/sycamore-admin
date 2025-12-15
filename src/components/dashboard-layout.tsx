@@ -16,6 +16,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        data-tour="sidebar"
       />
       <main
         className={cn(

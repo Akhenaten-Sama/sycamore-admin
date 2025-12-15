@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Modal, OnboardingTour } from '@/components/common'
+import { formsTourSteps } from '@/components/common/tourSteps'
 import { 
   Plus, 
   Search, 
@@ -378,11 +380,14 @@ export default function FormsPage() {
             <h1 className="text-2xl font-bold text-gray-900">Forms Management</h1>
             <p className="text-gray-600 mt-1">Create and manage shareable forms for data collection</p>
           </div>
-          <Button onClick={() => setShowCreateForm(true)}>
+          <Button onClick={() => setShowCreateForm(true)} data-tour="create-form">
             <Plus className="h-4 w-4 mr-2" />
             Create Form
           </Button>
         </div>
+
+        {/* Onboarding Tour */}
+        <OnboardingTour steps={formsTourSteps} storageKey="forms-tour-completed" />
 
         {/* Search */}
         <div className="flex items-center space-x-4">
@@ -399,7 +404,7 @@ export default function FormsPage() {
 
         {/* Create Form Modal */}
         {showCreateForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-tour="form-builder">
             <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-screen overflow-y-auto">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold">{editingForm ? 'Edit Form' : 'Create New Form'}</h2>
@@ -642,7 +647,7 @@ export default function FormsPage() {
                 
                 <CardContent>
                   {/* Shareable Link */}
-                  <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                  <div className="mb-4 p-3 bg-gray-50 rounded-lg" data-tour="share-form">
                     <p className="text-sm text-gray-600 mb-1">Shareable Link:</p>
                     <div className="flex items-center space-x-2">
                       <code className="flex-1 text-xs text-blue-600 bg-white px-2 py-1 rounded border">
@@ -675,7 +680,7 @@ export default function FormsPage() {
                   </div>
 
                   {/* Submissions Section */}
-                  <div>
+                  <div data-tour="form-submissions">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-medium text-gray-900">
                         Submissions ({form.submissionCount})

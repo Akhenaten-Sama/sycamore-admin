@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { Breadcrumbs } from '@/components/breadcrumbs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { OnboardingTour, dashboardTourSteps } from '@/components/common'
 import { 
   Users, 
   Calendar, 
@@ -214,6 +215,11 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
+      <OnboardingTour 
+        steps={dashboardTourSteps}
+        storageKey="dashboard-tour-completed"
+      />
+      
       <div className="space-y-6">
         {/* Header */}
         <div>
@@ -225,7 +231,7 @@ export default function Dashboard() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div data-tour="stats-cards" className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {statsArray.map((stat) => (
             <Card key={stat.name}>
               <CardContent className="p-6">
@@ -258,7 +264,7 @@ export default function Dashboard() {
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Recent Members */}
-          <Card>
+          <Card data-tour="recent-activity">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Users className="h-5 w-5 mr-2" />
@@ -332,7 +338,7 @@ export default function Dashboard() {
           </Card>
 
           {/* Quick Actions */}
-          <Card>
+          <Card data-tour="quick-actions">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Activity className="h-5 w-5 mr-2" />

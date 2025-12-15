@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Modal, OnboardingTour } from '@/components/common'
+import { teamsTourSteps } from '@/components/common/tourSteps'
 import { 
   Plus, 
   Search, 
@@ -394,13 +396,16 @@ const getTeamLeaderName = (teamLead: TeamLead | string) => {
               <Button onClick={handleExportCSV} variant="outline">
                 Export CSV
               </Button>
-              <Button onClick={handleAddTeam}>
+              <Button onClick={handleAddTeam} data-tour="create-team">
                 <Plus className="h-4 w-4 mr-2" />
                 New Team
               </Button>
             </div>
           </div>
         </div>
+
+        {/* Onboarding Tour */}
+        <OnboardingTour steps={teamsTourSteps} storageKey="teams-tour-completed" />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
@@ -462,7 +467,7 @@ const getTeamLeaderName = (teamLead: TeamLead | string) => {
         </Card>
 
         {/* Teams Table */}
-        <Card>
+        <Card data-tour="team-list">
           <CardHeader>
             <CardTitle>All Teams ({filteredTeams.length})</CardTitle>
           </CardHeader>

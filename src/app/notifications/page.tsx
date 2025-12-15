@@ -6,6 +6,7 @@ import { Breadcrumbs } from '@/components/breadcrumbs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Modal } from '@/components/common'
 import { 
   Plus, 
   Search, 
@@ -402,12 +403,15 @@ export default function NotificationsPage() {
               <Plus className="w-4 h-4" />
               New Template
             </Button>
-            <Button onClick={handleCreateCampaign} className="flex items-center gap-2">
+            <Button onClick={handleCreateCampaign} className="flex items-center gap-2" data-tour="send-notification">
               <Send className="w-4 h-4" />
               Send Notification
             </Button>
           </div>
         </div>
+
+        {/* Onboarding Tour */}
+        <OnboardingTour steps={notificationsTourSteps} storageKey="notifications-tour-completed" />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -577,7 +581,7 @@ export default function NotificationsPage() {
         )}
 
         {activeTab === 'campaigns' && (
-          <div className="space-y-4">
+          <div className="space-y-4" data-tour="notification-history">
             {filteredCampaigns.map((campaign) => {
               const template = templates.find(t => t.id === campaign.templateId)
               return (
@@ -705,246 +709,245 @@ export default function NotificationsPage() {
         )}
 
         {/* Template Modal */}
-        {isTemplateModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <h2 className="text-xl font-semibold mb-4">
-                {isEditing ? 'Edit Template' : 'Create New Template'}
-              </h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Template Name *
-                  </label>
-                  <Input
-                    value={templateForm.name}
-                    onChange={(e) => setTemplateForm(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Sunday Service Reminder"
-                  />
-                </div>
+        <Modal
+          open={isTemplateModalOpen}
+          onOpenChange={setIsTemplateModalOpen}
+          title={isEditing ? 'Edit Template' : 'Create New Template'}
+          size="lg"
+          footer={
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setIsTemplateModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" form="template-form">
+                {isEditing ? 'Update' : 'Create'} Template
+              </Button>
+            </>
+          }
+        >
+          <form id="template-form" onSubmit={(e) => { e.preventDefault(); handleSaveTemplate(); }} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Template Name *
+              </label>
+              <Input
+                value={templateForm.name}
+                onChange={(e) => setTemplateForm(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Sunday Service Reminder"
+              />
+            </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Type *
-                    </label>
-                    <select
-                      value={templateForm.type}
-                      onChange={(e) => setTemplateForm(prev => ({ ...prev, type: e.target.value as NotificationTemplate['type'] }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="push">Push Notification</option>
-                      <option value="email">Email</option>
-                      <option value="sms">SMS</option>
-                      <option value="in_app">In-App</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Category *
-                    </label>
-                    <select
-                      value={templateForm.category}
-                      onChange={(e) => setTemplateForm(prev => ({ ...prev, category: e.target.value as NotificationTemplate['category'] }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="announcement">Announcement</option>
-                      <option value="reminder">Reminder</option>
-                      <option value="urgent">Urgent</option>
-                      <option value="event">Event</option>
-                      <option value="giving">Giving</option>
-                      <option value="attendance">Attendance</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Title *
-                  </label>
-                  <Input
-                    value={templateForm.title}
-                    onChange={(e) => setTemplateForm(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="Don't Forget Sunday Service!"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Message *
-                  </label>
-                  <textarea
-                    value={templateForm.message}
-                    onChange={(e) => setTemplateForm(prev => ({ ...prev, message: e.target.value }))}
-                    placeholder="Join us this Sunday at 10 AM for worship and fellowship..."
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {templateForm.message.length}/160 characters (SMS limit)
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="isActive"
-                    checked={templateForm.isActive}
-                    onChange={(e) => setTemplateForm(prev => ({ ...prev, isActive: e.target.checked }))}
-                    className="rounded"
-                  />
-                  <label htmlFor="isActive" className="text-sm text-gray-700">
-                    Active template
-                  </label>
-                </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Type *
+                </label>
+                <select
+                  value={templateForm.type}
+                  onChange={(e) => setTemplateForm(prev => ({ ...prev, type: e.target.value as NotificationTemplate['type'] }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="push">Push Notification</option>
+                  <option value="email">Email</option>
+                  <option value="sms">SMS</option>
+                  <option value="in_app">In-App</option>
+                </select>
               </div>
 
-              <div className="flex justify-end gap-2 mt-6">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsTemplateModalOpen(false)}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Category *
+                </label>
+                <select
+                  value={templateForm.category}
+                  onChange={(e) => setTemplateForm(prev => ({ ...prev, category: e.target.value as NotificationTemplate['category'] }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  Cancel
-                </Button>
-                <Button onClick={handleSaveTemplate}>
-                  {isEditing ? 'Update' : 'Create'} Template
-                </Button>
+                  <option value="announcement">Announcement</option>
+                  <option value="reminder">Reminder</option>
+                  <option value="urgent">Urgent</option>
+                  <option value="event">Event</option>
+                  <option value="giving">Giving</option>
+                  <option value="attendance">Attendance</option>
+                </select>
               </div>
             </div>
-          </div>
-        )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Title *
+              </label>
+              <Input
+                value={templateForm.title}
+                onChange={(e) => setTemplateForm(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Don't Forget Sunday Service!"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Message *
+              </label>
+              <textarea
+                value={templateForm.message}
+                onChange={(e) => setTemplateForm(prev => ({ ...prev, message: e.target.value }))}
+                placeholder="Join us this Sunday at 10 AM for worship and fellowship..."
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {templateForm.message.length}/160 characters (SMS limit)
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="isActive"
+                checked={templateForm.isActive}
+                onChange={(e) => setTemplateForm(prev => ({ ...prev, isActive: e.target.checked }))}
+                className="rounded"
+              />
+              <label htmlFor="isActive" className="text-sm text-gray-700">
+                Active template
+              </label>
+            </div>
+          </form>
+        </Modal>
 
         {/* Campaign Modal */}
-        {isCampaignModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <h2 className="text-xl font-semibold mb-4">Send Notification</h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Template *
-                  </label>
-                  <select
-                    value={campaignForm.templateId}
-                    onChange={(e) => setCampaignForm(prev => ({ ...prev, templateId: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Select a template</option>
-                    {templates.filter(t => t.isActive).map(template => (
-                      <option key={template.id} value={template.id}>
-                        {template.name} ({template.type})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+        <Modal
+          open={isCampaignModalOpen}
+          onOpenChange={setIsCampaignModalOpen}
+          title="Send Notification"
+          size="lg"
+          footer={
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setIsCampaignModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                form="campaign-form"
+                disabled={!campaignForm.templateId || !campaignForm.name}
+              >
+                {campaignForm.sendImmediately ? 'Send Now' : 'Schedule'}
+              </Button>
+            </>
+          }
+        >
+          <form id="campaign-form" onSubmit={(e) => { e.preventDefault(); handleSendCampaign(); }} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Template *
+              </label>
+              <select
+                value={campaignForm.templateId}
+                onChange={(e) => setCampaignForm(prev => ({ ...prev, templateId: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select a template</option>
+                {templates.filter(t => t.isActive).map(template => (
+                  <option key={template.id} value={template.id}>
+                    {template.name} ({template.type})
+                  </option>
+                ))}
+              </select>
+            </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Campaign Name *
-                  </label>
-                  <Input
-                    value={campaignForm.name}
-                    onChange={(e) => setCampaignForm(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Weekly Sunday Reminder"
-                  />
-                </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Campaign Name *
+              </label>
+              <Input
+                value={campaignForm.name}
+                onChange={(e) => setCampaignForm(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Weekly Sunday Reminder"
+              />
+            </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Recipients *
-                  </label>
-                  <select
-                    value={campaignForm.recipientType}
-                    onChange={(e) => setCampaignForm(prev => ({ ...prev, recipientType: e.target.value as typeof campaignForm.recipientType }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="all">All Members</option>
-                    <option value="members">Active Members Only</option>
-                    <option value="teams">Specific Teams</option>
-                    <option value="groups">Specific Groups</option>
-                    <option value="custom">Custom Selection</option>
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Estimated recipients: {getRecipientCount()}
-                  </p>
-                </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Recipients *
+              </label>
+              <select
+                value={campaignForm.recipientType}
+                onChange={(e) => setCampaignForm(prev => ({ ...prev, recipientType: e.target.value as typeof campaignForm.recipientType }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Members</option>
+                <option value="members">Active Members Only</option>
+                <option value="teams">Specific Teams</option>
+                <option value="groups">Specific Groups</option>
+                <option value="custom">Custom Selection</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Estimated recipients: {getRecipientCount()}
+              </p>
+            </div>
 
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      id="sendNow"
-                      name="timing"
-                      checked={campaignForm.sendImmediately}
-                      onChange={() => setCampaignForm(prev => ({ ...prev, sendImmediately: true }))}
-                    />
-                    <label htmlFor="sendNow" className="text-sm text-gray-700">
-                      Send immediately
-                    </label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      id="schedule"
-                      name="timing"
-                      checked={!campaignForm.sendImmediately}
-                      onChange={() => setCampaignForm(prev => ({ ...prev, sendImmediately: false }))}
-                    />
-                    <label htmlFor="schedule" className="text-sm text-gray-700">
-                      Schedule for later
-                    </label>
-                  </div>
-                </div>
-
-                {!campaignForm.sendImmediately && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Scheduled Date & Time *
-                    </label>
-                    <Input
-                      type="datetime-local"
-                      value={campaignForm.scheduledAt}
-                      onChange={(e) => setCampaignForm(prev => ({ ...prev, scheduledAt: e.target.value }))}
-                    />
-                  </div>
-                )}
-
-                {campaignForm.templateId && (
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h4 className="font-medium mb-2">Preview:</h4>
-                    {(() => {
-                      const template = templates.find(t => t.id === campaignForm.templateId)
-                      return template ? (
-                        <div>
-                          <p className="text-sm font-medium">{template.title}</p>
-                          <p className="text-sm text-gray-600">{template.message}</p>
-                        </div>
-                      ) : null
-                    })()}
-                  </div>
-                )}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  id="sendNow"
+                  name="timing"
+                  checked={campaignForm.sendImmediately}
+                  onChange={() => setCampaignForm(prev => ({ ...prev, sendImmediately: true }))}
+                />
+                <label htmlFor="sendNow" className="text-sm text-gray-700">
+                  Send immediately
+                </label>
               </div>
-
-              <div className="flex justify-end gap-2 mt-6">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsCampaignModalOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={handleSendCampaign}
-                  disabled={!campaignForm.templateId || !campaignForm.name}
-                >
-                  {campaignForm.sendImmediately ? 'Send Now' : 'Schedule'}
-                </Button>
+              <div className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  id="schedule"
+                  name="timing"
+                  checked={!campaignForm.sendImmediately}
+                  onChange={() => setCampaignForm(prev => ({ ...prev, sendImmediately: false }))}
+                />
+                <label htmlFor="schedule" className="text-sm text-gray-700">
+                  Schedule for later
+                </label>
               </div>
             </div>
-          </div>
-        )}
+
+            {!campaignForm.sendImmediately && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Scheduled Date & Time *
+                </label>
+                <Input
+                  type="datetime-local"
+                  value={campaignForm.scheduledAt}
+                  onChange={(e) => setCampaignForm(prev => ({ ...prev, scheduledAt: e.target.value }))}
+                />
+              </div>
+            )}
+
+            {campaignForm.templateId && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium mb-2">Preview:</h4>
+                {(() => {
+                  const template = templates.find(t => t.id === campaignForm.templateId)
+                  return template ? (
+                    <div>
+                      <p className="text-sm font-medium">{template.title}</p>
+                      <p className="text-sm text-gray-600">{template.message}</p>
+                    </div>
+                  ) : null
+                })()}
+              </div>
+            )}
+          </form>
+        </Modal>
       </div>
     </DashboardLayout>
   )

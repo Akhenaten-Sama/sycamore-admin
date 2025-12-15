@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Modal, OnboardingTour } from '@/components/common'
+import { membersTourSteps } from '@/components/common/tourSteps'
 import { 
   Plus, 
   Search, 
@@ -285,7 +287,7 @@ export default function MembersPage() {
                 <Upload className="h-4 w-4 mr-2" />
                 Import CSV
               </Button>
-              <Button onClick={handleAddMember}>
+              <Button onClick={handleAddMember} data-tour="add-member">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Member
               </Button>
@@ -293,11 +295,14 @@ export default function MembersPage() {
           </div>
         </div>
 
+        {/* Onboarding Tour */}
+        <OnboardingTour steps={membersTourSteps} storageKey="members-tour-completed" />
+
         {/* Search and Filters */}
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
-              <div className="flex-1 relative">
+              <div className="flex-1 relative" data-tour="search">
                 <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
                   placeholder="Search members..."
@@ -306,7 +311,7 @@ export default function MembersPage() {
                   className="pl-10"
                 />
               </div>
-              <div className="flex space-x-2">
+              <div className="flex space-x-2" data-tour="filters">
                 <Button variant="outline" size="sm">
                   First Timers ({members.filter(m => m.isFirstTimer).length})
                 </Button>
@@ -322,7 +327,7 @@ export default function MembersPage() {
         </Card>
 
         {/* Members Table */}
-        <Card>
+        <Card data-tour="member-list">
           <CardHeader>
             <CardTitle>All Members ({filteredMembers.length})</CardTitle>
           </CardHeader>
@@ -446,13 +451,27 @@ export default function MembersPage() {
         </Card>
 
         {/* Add/Edit Member Modal */}
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <h2 className="text-xl font-semibold mb-4">
-                {isEditing ? 'Edit Member' : 'Add New Member'}
-              </h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
+        <Modal
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          title={isEditing ? 'Edit Member' : 'Add New Member'}
+          size="lg"
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" form="member-form" disabled={loading}>
+                {loading ? 'Saving...' : (isEditing ? 'Update Member' : 'Add Member')}
+              </Button>
+            </>
+          }
+        >
+          <form id="member-form" onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -610,22 +629,8 @@ export default function MembersPage() {
                     </span>
                   </label>
                 </div>
-                <div className="flex justify-end space-x-3 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsModalOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={loading}>
-                    {loading ? 'Saving...' : (isEditing ? 'Update Member' : 'Add Member')}
-                  </Button>
-                </div>
               </form>
-            </div>
-          </div>
-        )}
+            </Modal>
       </div>
     </DashboardLayout>
   )

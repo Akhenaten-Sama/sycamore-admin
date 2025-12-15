@@ -7,6 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
+import { ViewModal, OnboardingTour } from '@/components/common'
+import { testimoniesTourSteps } from '@/components/common/tourSteps'
 import { 
   Search, 
   Eye,
@@ -18,20 +21,10 @@ import {
   User,
   Filter
 } from 'lucide-react'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
 
 const breadcrumbItems = [
   { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Testimonies' }
+  { label: 'Praise Reports' }
 ]
 
 interface Testimony {
@@ -216,22 +209,25 @@ export default function TestimoniesPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Testimonies</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-3xl font-bold text-gray-900">Praise Reports</h1>
+            <p className="text-gray-600 mt-1">
               Manage praise reports and testimonies from members
             </p>
           </div>
         </div>
 
+        {/* Onboarding Tour */}
+        <OnboardingTour steps={testimoniesTourSteps} storageKey="testimonies-tour-completed" />
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Testimonies</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Praise Reports</CardTitle>
               <Heart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
+              <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
             </CardContent>
           </Card>
 
@@ -241,7 +237,7 @@ export default function TestimoniesPage() {
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.pending}</div>
+              <div className="text-2xl font-bold text-gray-900">{stats.pending}</div>
             </CardContent>
           </Card>
 
@@ -251,7 +247,7 @@ export default function TestimoniesPage() {
               <Check className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.approved}</div>
+              <div className="text-2xl font-bold text-gray-900">{stats.approved}</div>
             </CardContent>
           </Card>
 
@@ -261,20 +257,20 @@ export default function TestimoniesPage() {
               <Heart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalLikes}</div>
+              <div className="text-2xl font-bold text-gray-900">{stats.totalLikes}</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Filters */}
-        <Card>
+        <Card data-tour="testimony-filters">
           <CardHeader>
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search testimonies..."
+                    placeholder="Search praise reports..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -306,16 +302,16 @@ export default function TestimoniesPage() {
         </Card>
 
         {/* Testimonies List */}
-        <Card>
+        <Card data-tour="testimony-list">
           <CardHeader>
-            <CardTitle>Testimonies ({filteredTestimonies.length})</CardTitle>
+            <CardTitle>Praise Reports ({filteredTestimonies.length})</CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="text-center py-8">Loading testimonies...</div>
+              <div className="text-center py-8 text-gray-900">Loading praise reports...</div>
             ) : filteredTestimonies.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No testimonies found
+              <div className="text-center py-8 text-gray-600">
+                No praise reports found
               </div>
             ) : (
               <div className="space-y-4">
@@ -327,7 +323,7 @@ export default function TestimoniesPage() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold text-lg">{testimony.title}</h3>
+                          <h3 className="font-semibold text-lg text-gray-900">{testimony.title}</h3>
                           <Badge className={getCategoryColor(testimony.category)}>
                             {testimony.category}
                           </Badge>
@@ -342,10 +338,10 @@ export default function TestimoniesPage() {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                        <p className="text-sm text-gray-600 line-clamp-2 mb-2">
                           {testimony.testimony}
                         </p>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
                           <div className="flex items-center gap-1">
                             <User className="h-3 w-3" />
                             {testimony.submitterName}
@@ -405,105 +401,63 @@ export default function TestimoniesPage() {
           </CardContent>
         </Card>
 
-        {/* View Testimony Dialog */}
-        <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>{selectedTestimony?.title}</DialogTitle>
-              <DialogDescription>
-                <Badge className={selectedTestimony ? getCategoryColor(selectedTestimony.category) : ''}>
-                  {selectedTestimony?.category}
-                </Badge>
-              </DialogDescription>
-            </DialogHeader>
-            {selectedTestimony && (
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-sm font-medium">Testimony</Label>
-                  <p className="mt-1 text-sm whitespace-pre-wrap">{selectedTestimony.testimony}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium">Submitted By</Label>
-                    <p className="mt-1 text-sm">{selectedTestimony.submitterName}</p>
-                    {selectedTestimony.submitterEmail && (
-                      <p className="text-xs text-muted-foreground">{selectedTestimony.submitterEmail}</p>
-                    )}
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Submitted Date</Label>
-                    <p className="mt-1 text-sm">{new Date(selectedTestimony.createdAt).toLocaleDateString()}</p>
-                  </div>
-                </div>
-                {selectedTestimony.isApproved && selectedTestimony.approvedBy && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-sm font-medium">Approved By</Label>
-                      <p className="mt-1 text-sm">
-                        {selectedTestimony.approvedBy.firstName} {selectedTestimony.approvedBy.lastName}
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Approved Date</Label>
-                      <p className="mt-1 text-sm">
-                        {selectedTestimony.approvedAt ? new Date(selectedTestimony.approvedAt).toLocaleDateString() : 'N/A'}
-                      </p>
-                    </div>
-                  </div>
-                )}
-                {selectedTestimony.rejectionReason && (
-                  <div>
-                    <Label className="text-sm font-medium text-red-600">Rejection Reason</Label>
-                    <p className="mt-1 text-sm">{selectedTestimony.rejectionReason}</p>
-                  </div>
-                )}
-              </div>
-            )}
-            <DialogFooter>
-              {selectedTestimony && !selectedTestimony.isApproved && (
-                <>
-                  <Button
-                    variant="outline"
-                    onClick={() => openRejectModal(selectedTestimony)}
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Reject
-                  </Button>
-                  <Button
-                    onClick={() => approveTestimony(selectedTestimony._id)}
-                  >
-                    <Check className="h-4 w-4 mr-2" />
-                    Approve
-                  </Button>
-                </>
-              )}
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {/* View Testimony Modal */}
+        <ViewModal
+          open={isViewModalOpen}
+          onOpenChange={setIsViewModalOpen}
+          title={selectedTestimony?.title || ''}
+          description={
+            selectedTestimony ? (
+              <Badge className={getCategoryColor(selectedTestimony.category)}>
+                {selectedTestimony.category}
+              </Badge>
+            ) : undefined
+          }
+          size="lg"
+          data={selectedTestimony ? [
+            { label: 'Testimony', value: selectedTestimony.testimony, fullWidth: true },
+            { label: 'Submitted By', value: selectedTestimony.submitterName },
+            { label: 'Email', value: selectedTestimony.submitterEmail || 'N/A' },
+            { label: 'Submitted Date', value: new Date(selectedTestimony.createdAt).toLocaleDateString() },
+            { label: 'Status', value: selectedTestimony.isApproved ? 'Approved' : 'Pending' },
+            ...(selectedTestimony.isApproved && selectedTestimony.approvedBy ? [
+              { label: 'Approved By', value: `${selectedTestimony.approvedBy.firstName} ${selectedTestimony.approvedBy.lastName}` },
+              { label: 'Approved Date', value: selectedTestimony.approvedAt ? new Date(selectedTestimony.approvedAt).toLocaleDateString() : 'N/A' }
+            ] : []),
+            ...(selectedTestimony.rejectionReason ? [
+              { label: 'Rejection Reason', value: selectedTestimony.rejectionReason, fullWidth: true }
+            ] : [])
+          ] : []}
+          footer={
+            selectedTestimony && !selectedTestimony.isApproved ? (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => openRejectModal(selectedTestimony)}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Reject
+                </Button>
+                <Button
+                  onClick={() => approveTestimony(selectedTestimony._id)}
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Approve
+                </Button>
+              </>
+            ) : undefined
+          }
+        />
 
-        {/* Reject Testimony Dialog */}
-        <Dialog open={isRejectModalOpen} onOpenChange={setIsRejectModalOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Reject Testimony</DialogTitle>
-              <DialogDescription>
-                Please provide a reason for rejecting this testimony
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Rejection Reason</Label>
-                <Textarea
-                  id="rejection-reason"
-                  value={rejectionReason}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setRejectionReason(e.target.value)}
-                  placeholder="Enter reason for rejection..."
-                  className="mt-1"
-                  rows={4}
-                />
-              </div>
-            </div>
-            <DialogFooter>
+        {/* Reject Testimony Modal */}
+        <ViewModal
+          open={isRejectModalOpen}
+          onOpenChange={setIsRejectModalOpen}
+          title="Reject Praise Report"
+          description="Please provide a reason for rejecting this praise report"
+          data={[]}
+          footer={
+            <>
               <Button variant="outline" onClick={() => setIsRejectModalOpen(false)}>
                 Cancel
               </Button>
@@ -512,11 +466,25 @@ export default function TestimoniesPage() {
                 disabled={!rejectionReason.trim()}
                 variant="danger"
               >
-                Reject Testimony
+                Reject Praise Report
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <div>
+              <Label>Rejection Reason</Label>
+              <textarea
+                id="rejection-reason"
+                value={rejectionReason}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setRejectionReason(e.target.value)}
+                placeholder="Enter reason for rejection..."
+                className="mt-1 flex min-h-[80px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows={4}
+              />
+            </div>
+          </div>
+        </ViewModal>
       </div>
     </DashboardLayout>
   )

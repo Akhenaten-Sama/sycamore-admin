@@ -6,6 +6,7 @@ import { Breadcrumbs } from '@/components/breadcrumbs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { ViewModal } from '@/components/common'
 import { 
   Plus, 
   Search, 
@@ -639,61 +640,42 @@ export default function FormSubmissionsPage() {
         </Card>
 
         {/* Submission Detail Modal */}
-        {isModalOpen && selectedSubmission && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h2 className="text-xl font-semibold">{selectedSubmission.formTitle}</h2>
-                  <p className="text-gray-600">
-                    Submitted by {selectedSubmission.submitterName || 'Anonymous'} on{' '}
-                    {new Date(selectedSubmission.submittedAt).toLocaleString()}
-                  </p>
+        <ViewModal
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          title={selectedSubmission?.formTitle || ''}
+          description={`Submitted by ${selectedSubmission?.submitterName || 'Anonymous'} on ${selectedSubmission ? new Date(selectedSubmission.submittedAt).toLocaleString() : ''}`}
+          size="xl"
+          data={selectedSubmission ? Object.entries(selectedSubmission.responses).map(([key, value]) => {
+            const form = forms.find(f => f.id === selectedSubmission.formId)
+            const field = form?.fields.find(f => f.id === key)
+            const label = field?.label || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+            
+            let displayValue: React.ReactNode = String(value || 'No response')
+            
+            if (field?.type === 'checkbox') {
+              displayValue = (
+                <span className={`px-2 py-1 rounded text-sm ${
+                  value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                }`}>
+                  {value ? 'Yes' : 'No'}
+                </span>
+              )
+            } else if (field?.type === 'textarea') {
+              displayValue = (
+                <div className="whitespace-pre-wrap bg-gray-50 p-3 rounded text-gray-900">
+                  {String(value || 'No response')}
                 </div>
-                <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-                  ×
-                </Button>
-              </div>
-              
-              <div className="space-y-4">
-                {Object.entries(selectedSubmission.responses).map(([key, value]) => {
-                  const form = forms.find(f => f.id === selectedSubmission.formId)
-                  const field = form?.fields.find(f => f.id === key)
-                  const label = field?.label || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-                  
-                  return (
-                    <div key={key} className="border-b border-gray-200 pb-3">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {label}
-                      </label>
-                      <div className="text-gray-900">
-                        {field?.type === 'checkbox' ? (
-                          <span className={`px-2 py-1 rounded text-sm ${
-                            value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {value ? 'Yes' : 'No'}
-                          </span>
-                        ) : field?.type === 'textarea' ? (
-                          <div className="whitespace-pre-wrap bg-gray-50 p-3 rounded">
-                            {String(value || 'No response')}
-                          </div>
-                        ) : (
-                          <p>{String(value || 'No response')}</p>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-
-              <div className="flex justify-end gap-2 mt-6">
-                <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-                  Close
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+              )
+            }
+            
+            return {
+              label,
+              value: displayValue,
+              fullWidth: field?.type === 'textarea'
+            }
+          }) : []}
+        />
       </div>
     </DashboardLayout>
   )

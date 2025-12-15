@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { ViewModal, FormModal, Modal } from '@/components/common'
 import { 
   Plus, 
   Search, 
@@ -520,7 +521,7 @@ export default function RequestFormsPage() {
         {isModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <h2 className="text-xl font-semibold mb-4">
+              <h2 className="text-xl font-semibold mb-4 text-gray-900">
                 {isEditing ? 'Edit Form' : 'Create New Form'}
               </h2>
               
@@ -676,148 +677,122 @@ export default function RequestFormsPage() {
         )}
 
         {/* Submission View Modal */}
-        {isSubmissionModalOpen && selectedSubmission && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <h2 className="text-xl font-semibold mb-4 text-gray-900">Submission Details</h2>
-              
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-600">Form</p>
-                    <p className="font-medium">
-                      {selectedSubmission.formId?.title || 'Unknown Form'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600">Submitter</p>
-                    <p className="font-medium">
-                      {selectedSubmission.submitterId ? 
-                        `${selectedSubmission.submitterId.firstName} ${selectedSubmission.submitterId.lastName}` :
-                        'Unknown Submitter'
-                      }
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600">Status</p>
-                    <p className="font-medium capitalize">{selectedSubmission.status}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600">Submitted</p>
-                    <p className="font-medium">{formatDateConsistent(new Date(selectedSubmission.submittedAt))}</p>
-                  </div>
+        <ViewModal
+          open={isSubmissionModalOpen}
+          onOpenChange={setIsSubmissionModalOpen}
+          title="Submission Details"
+          size="lg"
+          data={selectedSubmission ? [
+            { 
+              label: 'Form', 
+              value: selectedSubmission.formId?.title || 'Unknown Form'
+            },
+            { 
+              label: 'Submitter', 
+              value: selectedSubmission.submitterId ? 
+                `${selectedSubmission.submitterId.firstName} ${selectedSubmission.submitterId.lastName}` :
+                'Unknown Submitter'
+            },
+            { 
+              label: 'Status', 
+              value: <span className="capitalize">{selectedSubmission.status}</span>
+            },
+            { 
+              label: 'Submitted', 
+              value: formatDateConsistent(new Date(selectedSubmission.submittedAt))
+            },
+            { 
+              label: 'Responses', 
+              value: (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <pre className="text-sm text-gray-900">{JSON.stringify(selectedSubmission.responses, null, 2)}</pre>
                 </div>
-
-                <div>
-                  <p className="text-gray-600 mb-2">Responses</p>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <pre className="text-sm">{JSON.stringify(selectedSubmission.responses, null, 2)}</pre>
-                  </div>
-                </div>
-
-                {selectedSubmission.notes && (
-                  <div>
-                    <p className="text-gray-600 mb-2">Notes</p>
-                    <p className="text-sm bg-gray-50 p-3 rounded-lg">{selectedSubmission.notes}</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-end gap-2 mt-6">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsSubmissionModalOpen(false)}
-                >
-                  Close
+              ),
+              fullWidth: true
+            },
+            ...(selectedSubmission.notes ? [
+              { 
+                label: 'Notes', 
+                value: <p className="text-sm bg-gray-50 p-3 rounded-lg text-gray-900">{selectedSubmission.notes}</p>,
+                fullWidth: true
+              }
+            ] : [])
+          ] : []}
+          footer={
+            selectedSubmission?.status === 'pending' ? (
+              <>
+                <Button variant="outline">
+                  Reject
                 </Button>
-                {selectedSubmission.status === 'pending' && (
-                  <>
-                    <Button variant="outline">
-                      Reject
-                    </Button>
-                    <Button>
-                      Approve
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+                <Button>
+                  Approve
+                </Button>
+              </>
+            ) : undefined
+          }
+        />
 
         {/* Share Modal */}
-        {isShareModalOpen && selectedForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h2 className="text-xl font-semibold mb-4">
-                Share Form: {selectedForm.title}
-              </h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Public Form URL
-                  </label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={getFormPublicUrl(selectedForm.id)}
-                      readOnly
-                      className="flex-1"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => copyFormLink(selectedForm.id)}
-                      title="Copy link"
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Users can access this form directly using this link
-                  </p>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => openFormInNewTab(selectedForm.id)}
-                    className="flex-1"
-                  >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Preview Form
-                  </Button>
-                  <Button
-                    onClick={() => copyFormLink(selectedForm.id)}
-                    className="flex-1"
-                  >
-                    <Copy className="w-4 h-4 mr-2" />
-                    Copy Link
-                  </Button>
-                </div>
-
-                <div className="bg-gray-50 p-3 rounded">
-                  <h4 className="font-medium text-sm mb-2">Sharing Options:</h4>
-                  <ul className="text-xs text-gray-600 space-y-1">
-                    <li>• Share the link via email, WhatsApp, or social media</li>
-                    <li>• Embed in your church website or bulletin</li>
-                    <li>• QR code generation (coming soon)</li>
-                    <li>• Form is {selectedForm.isActive ? 'currently active' : 'currently inactive'}</li>
-                  </ul>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 mt-6">
+        <Modal
+          open={isShareModalOpen}
+          onOpenChange={setIsShareModalOpen}
+          title={`Share Form: ${selectedForm?.title || ''}`}
+          size="md"
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-2">
+                Public Form URL
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  value={selectedForm ? getFormPublicUrl(selectedForm.id) : ''}
+                  readOnly
+                  className="flex-1"
+                />
                 <Button
                   variant="outline"
-                  onClick={() => setIsShareModalOpen(false)}
+                  size="sm"
+                  onClick={() => selectedForm && copyFormLink(selectedForm.id)}
+                  title="Copy link"
                 >
-                  Close
+                  <Copy className="w-4 h-4" />
                 </Button>
               </div>
+              <p className="text-xs text-gray-600 mt-1">
+                Users can access this form directly using this link
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => selectedForm && openFormInNewTab(selectedForm.id)}
+                className="flex-1"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Preview Form
+              </Button>
+              <Button
+                onClick={() => selectedForm && copyFormLink(selectedForm.id)}
+                className="flex-1"
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Copy Link
+              </Button>
+            </div>
+
+            <div className="bg-gray-50 p-3 rounded">
+              <h4 className="font-medium text-sm mb-2 text-gray-900">Sharing Options:</h4>
+              <ul className="text-xs text-gray-700 space-y-1">
+                <li>• Share the link via email, WhatsApp, or social media</li>
+                <li>• Embed in your church website or bulletin</li>
+                <li>• QR code generation (coming soon)</li>
+                <li>• Form is {selectedForm?.isActive ? 'currently active' : 'currently inactive'}</li>
+              </ul>
             </div>
           </div>
-        )}
+        </Modal>
       </div>
     </DashboardLayout>
   )
