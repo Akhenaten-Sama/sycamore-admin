@@ -30,7 +30,7 @@
     "mongodb": "^6.17.0",
     "mongoose": "^8.16.1",
     "multer": "^2.0.1",
-    "next": "15.3.4",
+    "next": "15.3.8",
     "next-auth": "^4.24.11",
     "nodemailer": "^6.10.1",
     "papaparse": "^5.5.3",
