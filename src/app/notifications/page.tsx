@@ -6,7 +6,8 @@ import { Breadcrumbs } from '@/components/breadcrumbs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Modal } from '@/components/common'
+import { Modal, OnboardingTour } from '@/components/common'
+import { notificationsTourSteps } from '@/components/common/tourSteps'
 import { 
   Plus, 
   Search, 
