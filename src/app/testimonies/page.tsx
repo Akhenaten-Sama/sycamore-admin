@@ -356,7 +356,7 @@ export default function TestimoniesPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2" data-tour="approve-reject">
                         <Button
                           variant="outline"
                           size="sm"
