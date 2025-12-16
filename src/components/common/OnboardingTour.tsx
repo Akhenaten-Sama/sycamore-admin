@@ -122,7 +122,7 @@ export function OnboardingTour({
   return (
     <>
       {/* Overlay */}
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-[9998]" />
+      <div className="fixed inset-0 bg-black/30 z-[9998]" />
       
       {/* Tooltip */}
       <div
@@ -197,8 +197,8 @@ export function OnboardingTour({
         .onboarding-highlight {
           position: relative;
           z-index: 9997;
-          box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5),
-                      0 0 0 9999px rgba(0, 0, 0, 0.5);
+          box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.6),
+                      0 0 0 9999px rgba(0, 0, 0, 0.3);
           border-radius: 8px;
         }
       `}</style>
