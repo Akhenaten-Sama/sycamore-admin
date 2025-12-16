@@ -33,7 +33,7 @@ export function OnboardingTour({
       const hasSeenTour = localStorage.getItem(storageKey)
       if (!hasSeenTour) {
         // Delay to ensure DOM is ready and data is loaded
-        setTimeout(() => setIsActive(true), 1500)
+        setTimeout(() => setIsActive(true), 2000)
       }
     }
   }, [storageKey, showOnMount])
@@ -43,11 +43,16 @@ export function OnboardingTour({
       // Retry positioning in case element loads after initial render
       const attemptPosition = (attempts = 0) => {
         const element = document.querySelector(steps[currentStep].target)
-        if (element || attempts >= 10) {
-          positionTooltip()
+        if (element) {
+          // Scroll element into view before positioning
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          setTimeout(() => positionTooltip(), 100) // Small delay after scroll
+        } else if (attempts < 10) {
+          // Retry after 300ms if element not found (max 10 attempts = 3 seconds)
+          setTimeout(() => attemptPosition(attempts + 1), 300)
         } else {
-          // Retry after 200ms if element not found (max 10 attempts = 2 seconds)
-          setTimeout(() => attemptPosition(attempts + 1), 200)
+          // Element not found after retries, position tooltip anyway
+          positionTooltip()
         }
       }
       attemptPosition()
