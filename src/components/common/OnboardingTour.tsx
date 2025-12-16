@@ -122,11 +122,11 @@ export function OnboardingTour({
   return (
     <>
       {/* Overlay */}
-      <div className="fixed inset-0 bg-black/30 z-[9998]" />
+      <div className="fixed inset-0 bg-black/20 z-[9998] pointer-events-none" />
       
       {/* Tooltip */}
       <div
-        className="fixed z-[9999] bg-white rounded-lg shadow-2xl p-6 max-w-md animate-in fade-in slide-in-from-bottom-5"
+        className="fixed z-[9999] bg-white rounded-lg shadow-2xl p-6 max-w-md animate-in fade-in slide-in-from-bottom-5 pointer-events-auto"
         style={{
           top: `${position.top}px`,
           left: `${position.left}px`,
@@ -196,10 +196,10 @@ export function OnboardingTour({
       <style jsx global>{`
         .onboarding-highlight {
           position: relative;
-          z-index: 9997;
-          box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.6),
-                      0 0 0 9999px rgba(0, 0, 0, 0.3);
+          z-index: 9999;
+          box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.8);
           border-radius: 8px;
+          background: white;
         }
       `}</style>
     </>
