@@ -6,7 +6,8 @@ import { Breadcrumbs } from '@/components/breadcrumbs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Modal, ViewModal } from '@/components/common'
+import { Modal, ViewModal, OnboardingTour } from '@/components/common'
+import { galleryTourSteps } from '@/components/common/tourSteps'
 import { 
   Plus, 
   Search, 
@@ -1288,6 +1289,8 @@ export default function GalleryPage() {
             }}
           />
         )}
+        
+        <OnboardingTour steps={galleryTourSteps} storageKey="gallery-tour-completed" />
       </div>
     </DashboardLayout>
   )

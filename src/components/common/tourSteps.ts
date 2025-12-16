@@ -221,3 +221,87 @@ export const formsTourSteps: TourStep[] = [
     placement: 'left'
   }
 ]
+
+// Media page tour
+export const mediaTourSteps: TourStep[] = [
+  {
+    target: '[data-tour="upload-media"]',
+    title: 'Upload Media',
+    content: 'Upload sermon videos, audio messages, or other media content to share with your congregation.',
+    placement: 'bottom'
+  },
+  {
+    target: '[data-tour="media-categories"]',
+    title: 'Organize Content',
+    content: 'Categorize media by type (sermon, worship, teaching) and add tags for easy discovery.',
+    placement: 'bottom'
+  },
+  {
+    target: '[data-tour="media-list"]',
+    title: 'Manage Media',
+    content: 'View all uploaded media with playback stats. Edit details, add sermon notes, or delete content.',
+    placement: 'bottom'
+  },
+  {
+    target: '[data-tour="media-stats"]',
+    title: 'Engagement Metrics',
+    content: 'Track views, likes, comments, and shares to see which content resonates most with members.',
+    placement: 'top'
+  }
+]
+
+// Gallery page tour
+export const galleryTourSteps: TourStep[] = [
+  {
+    target: '[data-tour="upload-photos"]',
+    title: 'Upload Photos',
+    content: 'Upload event photos, church activities, or special occasions to create a visual timeline.',
+    placement: 'bottom'
+  },
+  {
+    target: '[data-tour="create-folder"]',
+    title: 'Organize Albums',
+    content: 'Create folders to organize photos by event, date, or category for easy navigation.',
+    placement: 'bottom'
+  },
+  {
+    target: '[data-tour="gallery-grid"]',
+    title: 'Photo Gallery',
+    content: 'Browse all images in grid view. Click to view full size, edit details, or delete photos.',
+    placement: 'bottom'
+  },
+  {
+    target: '[data-tour="bulk-actions"]',
+    title: 'Batch Operations',
+    content: 'Select multiple photos to move, delete, or tag in bulk for efficient management.',
+    placement: 'top'
+  }
+]
+
+// Junior Church page tour
+export const juniorChurchTourSteps: TourStep[] = [
+  {
+    target: '[data-tour="add-child"]',
+    title: 'Register Children',
+    content: 'Add children to Junior Church with parent/guardian information and emergency contacts.',
+    placement: 'bottom'
+  },
+  {
+    target: '[data-tour="check-in"]',
+    title: 'Check-In System',
+    content: 'Use the barcode scanner or manual check-in to track attendance and ensure child safety.',
+    placement: 'bottom'
+  },
+  {
+    target: '[data-tour="attendance-stats"]',
+    title: 'Attendance Tracking',
+    content: 'View attendance history, patterns, and generate reports for Junior Church programs.',
+    placement: 'bottom'
+  },
+  {
+    target: '[data-tour="children-list"]',
+    title: 'Manage Children',
+    content: 'View all registered children with age groups, attendance records, and parent contact information.',
+    placement: 'top'
+  }
+]
