@@ -32,15 +32,25 @@ export function OnboardingTour({
     if (showOnMount) {
       const hasSeenTour = localStorage.getItem(storageKey)
       if (!hasSeenTour) {
-        // Delay to ensure DOM is ready
-        setTimeout(() => setIsActive(true), 500)
+        // Delay to ensure DOM is ready and data is loaded
+        setTimeout(() => setIsActive(true), 1500)
       }
     }
   }, [storageKey, showOnMount])
 
   useEffect(() => {
     if (isActive && steps[currentStep]) {
-      positionTooltip()
+      // Retry positioning in case element loads after initial render
+      const attemptPosition = (attempts = 0) => {
+        const element = document.querySelector(steps[currentStep].target)
+        if (element || attempts >= 10) {
+          positionTooltip()
+        } else {
+          // Retry after 200ms if element not found (max 10 attempts = 2 seconds)
+          setTimeout(() => attemptPosition(attempts + 1), 200)
+        }
+      }
+      attemptPosition()
     }
   }, [isActive, currentStep, steps])
 
@@ -48,67 +58,76 @@ export function OnboardingTour({
     const step = steps[currentStep]
     const element = document.querySelector(step.target)
     
-    if (element) {
-      const rect = element.getBoundingClientRect()
-      const placement = step.placement || 'bottom'
-      
-      // Tooltip dimensions (approximate)
-      const tooltipWidth = 448 // max-w-md = 28rem = 448px
-      const tooltipHeight = 200 // approximate height
-      const padding = 20
-      
-      let top = 0
-      let left = 0
-      
-      switch (placement) {
-        case 'top':
-          top = rect.top - tooltipHeight - 20
-          left = rect.left + rect.width / 2
-          break
-        case 'bottom':
-          top = rect.bottom + 20
-          left = rect.left + rect.width / 2
-          break
-        case 'left':
-          top = rect.top + rect.height / 2
-          left = rect.left - tooltipWidth - 20
-          break
-        case 'right':
-          top = rect.top + rect.height / 2
-          left = rect.right + 20
-          break
-      }
-      
-      // Ensure tooltip stays within viewport bounds
+    if (!element) {
+      // Element not found - center tooltip on screen
       const viewportWidth = window.innerWidth
       const viewportHeight = window.innerHeight
-      
-      // Adjust horizontal position
-      if (left - tooltipWidth / 2 < padding) {
-        left = tooltipWidth / 2 + padding
-      } else if (left + tooltipWidth / 2 > viewportWidth - padding) {
-        left = viewportWidth - tooltipWidth / 2 - padding
-      }
-      
-      // Adjust vertical position
-      if (top < padding) {
-        top = padding
-      } else if (top + tooltipHeight > viewportHeight - padding) {
-        top = viewportHeight - tooltipHeight - padding
-      }
-      
-      setPosition({ top, left })
-      
-      // Highlight the target element
-      element.classList.add('onboarding-highlight')
-      
-      // Remove highlight from previous element
-      document.querySelectorAll('.onboarding-highlight').forEach(el => {
-        if (el !== element) {
-          el.classList.remove('onboarding-highlight')
-        }
+      setPosition({ 
+        top: viewportHeight / 2, 
+        left: viewportWidth / 2 
       })
+      return
     }
+    
+    const rect = element.getBoundingClientRect()
+    const placement = step.placement || 'bottom'
+    
+    // Tooltip dimensions (approximate)
+    const tooltipWidth = 448 // max-w-md = 28rem = 448px
+    const tooltipHeight = 200 // approximate height
+    const padding = 20
+    
+    let top = 0
+    let left = 0
+    
+    switch (placement) {
+      case 'top':
+        top = rect.top - tooltipHeight - 20
+        left = rect.left + rect.width / 2
+        break
+      case 'bottom':
+        top = rect.bottom + 20
+        left = rect.left + rect.width / 2
+        break
+      case 'left':
+        top = rect.top + rect.height / 2
+        left = rect.left - tooltipWidth - 20
+        break
+      case 'right':
+        top = rect.top + rect.height / 2
+        left = rect.right + 20
+        break
+    }
+    
+    // Ensure tooltip stays within viewport bounds
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+    
+    // Adjust horizontal position
+    if (left - tooltipWidth / 2 < padding) {
+      left = tooltipWidth / 2 + padding
+    } else if (left + tooltipWidth / 2 > viewportWidth - padding) {
+      left = viewportWidth - tooltipWidth / 2 - padding
+    }
+    
+    // Adjust vertical position
+    if (top < padding) {
+      top = padding
+    } else if (top + tooltipHeight > viewportHeight - padding) {
+      top = viewportHeight - tooltipHeight - padding
+    }
+    
+    setPosition({ top, left })
+    
+    // Highlight the target element
+    element.classList.add('onboarding-highlight')
+    
+    // Remove highlight from previous element
+    document.querySelectorAll('.onboarding-highlight').forEach(el => {
+      if (el !== element) {
+        el.classList.remove('onboarding-highlight')
+      }
+    })
   }
 
   const handleNext = () => {

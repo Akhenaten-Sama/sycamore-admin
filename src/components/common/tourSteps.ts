@@ -138,15 +138,9 @@ export const testimoniesTourSteps: TourStep[] = [
   },
   {
     target: '[data-tour="testimony-list"]',
-    title: 'Review Submissions',
-    content: 'Read member testimonies and approve or reject them for public display in the mobile app.',
+    title: 'Review & Moderate Submissions',
+    content: 'Read member testimonies, approve them for public display, or reject inappropriate submissions. Use the green checkmark to approve and red X to reject pending testimonies.',
     placement: 'bottom'
-  },
-  {
-    target: '[data-tour="approve-reject"]',
-    title: 'Moderation Actions',
-    content: 'Approve testimonies to share with the congregation, or reject inappropriate submissions with a reason.',
-    placement: 'left'
   }
 ]
 
