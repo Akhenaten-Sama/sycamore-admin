@@ -52,12 +52,17 @@ export function OnboardingTour({
       const rect = element.getBoundingClientRect()
       const placement = step.placement || 'bottom'
       
+      // Tooltip dimensions (approximate)
+      const tooltipWidth = 448 // max-w-md = 28rem = 448px
+      const tooltipHeight = 200 // approximate height
+      const padding = 20
+      
       let top = 0
       let left = 0
       
       switch (placement) {
         case 'top':
-          top = rect.top - 20
+          top = rect.top - tooltipHeight - 20
           left = rect.left + rect.width / 2
           break
         case 'bottom':
@@ -66,12 +71,30 @@ export function OnboardingTour({
           break
         case 'left':
           top = rect.top + rect.height / 2
-          left = rect.left - 20
+          left = rect.left - tooltipWidth - 20
           break
         case 'right':
           top = rect.top + rect.height / 2
           left = rect.right + 20
           break
+      }
+      
+      // Ensure tooltip stays within viewport bounds
+      const viewportWidth = window.innerWidth
+      const viewportHeight = window.innerHeight
+      
+      // Adjust horizontal position
+      if (left - tooltipWidth / 2 < padding) {
+        left = tooltipWidth / 2 + padding
+      } else if (left + tooltipWidth / 2 > viewportWidth - padding) {
+        left = viewportWidth - tooltipWidth / 2 - padding
+      }
+      
+      // Adjust vertical position
+      if (top < padding) {
+        top = padding
+      } else if (top + tooltipHeight > viewportHeight - padding) {
+        top = viewportHeight - tooltipHeight - padding
       }
       
       setPosition({ top, left })
