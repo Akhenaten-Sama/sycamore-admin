@@ -488,14 +488,14 @@ export default function JuniorChurchPage() {
             <h1 className="text-3xl font-bold text-gray-900">Junior Church</h1>
             <p className="text-gray-600 mt-1">Manage kids signups, drop-off and pick-up tracking</p>
           </div>
-          <Button onClick={handleCreateMember} className="flex items-center gap-2">
+          <Button onClick={handleCreateMember} className="flex items-center gap-2" data-tour="add-child">
             <Plus className="w-4 h-4" />
             Register Child
           </Button>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4" data-tour="attendance-stats">
           {['nursery', 'toddlers', 'preschool', 'elementary', 'teens'].map((className) => {
             const count = juniorMembers.filter(m => m.class === className && m.isActive).length
             return (
@@ -657,7 +657,7 @@ export default function JuniorChurchPage() {
             </Card>
 
             {/* Members Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-tour="children-list">
               {filteredMembers.map((member) => (
                 <Card key={member.id} className="hover:shadow-lg transition-shadow">
                   <CardContent className="p-6">
@@ -739,7 +739,7 @@ export default function JuniorChurchPage() {
         )}
 
         {activeTab === 'checkin' && (
-          <Card>
+          <Card data-tour="check-in">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <QrCode className="w-5 h-5" />

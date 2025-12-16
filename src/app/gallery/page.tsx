@@ -577,12 +577,12 @@ export default function GalleryPage() {
             
             {/* Action Buttons */}
             {viewMode === 'folders' && (
-              <Button onClick={handleCreateFolder} className="flex items-center gap-2">
+              <Button onClick={handleCreateFolder} className="flex items-center gap-2" data-tour="create-folder">
                 <FolderPlus className="w-4 h-4" />
                 Create Folder
               </Button>
             )}
-            <Button onClick={handleUploadFiles} className="flex items-center gap-2">
+            <Button onClick={handleUploadFiles} className="flex items-center gap-2" data-tour="upload-photos">
               <Upload className="w-4 h-4" />
               Upload Files
             </Button>
@@ -749,9 +749,9 @@ export default function GalleryPage() {
               {loading ? (
                 <div className="text-center py-8 text-gray-600">Loading images...</div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {images.map((image) => (
-                    <div key={image.id} className="bg-white border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" data-tour="gallery-grid">
+                  {images.map((image, idx) => (
+                    <div key={image.id} className="bg-white border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow" data-tour={idx === 0 ? "bulk-actions" : undefined}>
                       <div className="aspect-square relative bg-gray-100">
                         <img
                           src={image.imageUrl}

@@ -291,14 +291,14 @@ export default function MediaPage() {
             <h1 className="text-3xl font-bold text-gray-900">Media Library</h1>
             <p className="text-gray-600 mt-1">Manage worship songs, sermons, and ministry content</p>
           </div>
-          <Button onClick={handleCreateMedia} className="flex items-center gap-2">
+          <Button onClick={handleCreateMedia} className="flex items-center gap-2" data-tour="upload-media">
             <Plus className="w-4 h-4" />
             Add Media
           </Button>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4" data-tour="media-categories">
           {[
             { key: 'sermon', label: 'Sermons', icon: Video },
             { key: 'worship', label: 'Worship', icon: Music },
@@ -369,11 +369,11 @@ export default function MediaPage() {
         </Card>
 
         {/* Media Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-tour="media-list">
           {filteredMedia.map((media) => {
             const TypeIcon = getTypeIcon(media.type)
             return (
-              <Card key={media.id} className="hover:shadow-lg transition-shadow">
+              <Card key={media.id} className="hover:shadow-lg transition-shadow" data-tour={media === filteredMedia[0] ? "media-stats" : undefined}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2 flex-wrap">
