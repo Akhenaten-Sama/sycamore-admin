@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Modal } from '@/components/common'
-import { UserPlus, UserMinus, Mail, Search } from 'lucide-react'
+import { UserPlus, UserMinus, Search } from 'lucide-react'
 import { Member, CommunityPopulated } from '@/types'
 import { apiClient } from '@/lib/api-client'
 
@@ -73,19 +73,6 @@ export function CommunityManagement({ community, onClose, onUpdate }: CommunityM
     }
   }
 
-  const handleInviteMember = async (memberId: string) => {
-    setLoading(true)
-    try {
-      // TODO: Implement invite functionality
-      console.log('Inviting member:', memberId)
-      // This would send an invitation to the member
-    } catch (error) {
-      console.error('Error inviting member:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -144,7 +131,7 @@ export function CommunityManagement({ community, onClose, onUpdate }: CommunityM
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">
-                {community.inviteOnly ? 'Invite Members' : 'Add Members'}
+                Add Members
               </CardTitle>
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -169,26 +156,15 @@ export function CommunityManagement({ community, onClose, onUpdate }: CommunityM
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      {community.inviteOnly ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleInviteMember(member.id)}
-                          disabled={loading}
-                        >
-                          <Mail className="w-4 h-4 mr-1" />
-                          Invite
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleAddMember(member.id)}
-                          disabled={loading}
-                        >
-                          <UserPlus className="w-4 h-4" />
-                        </Button>
-                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleAddMember(member.id)}
+                        disabled={loading}
+                      >
+                        <UserPlus className="w-4 h-4 mr-1" />
+                        Add
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -211,7 +187,6 @@ export function CommunityManagement({ community, onClose, onUpdate }: CommunityM
           <div className="mt-4 p-4 bg-blue-50 rounded-lg">
             <p className="text-sm text-blue-800">
               <strong>Private Community:</strong> This community is private and only visible to members.
-              {community.inviteOnly && ' Members must be invited and approved to join.'}
             </p>
           </div>
         )}
