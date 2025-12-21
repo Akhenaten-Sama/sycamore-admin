@@ -54,6 +54,16 @@ export async function GET(request: NextRequest) {
         { isPrivate: false },
         { invitedMembers: memberData._id }
       ]
+    } else if (type === 'all') {
+      // For 'all' type, show:
+      // 1. Communities the user is a member of (regardless of privacy)
+      // 2. Public communities they haven't joined
+      // 3. Private communities they're invited to
+      query.$or = [
+        { members: memberData._id }, // Already a member
+        { isPrivate: false }, // Public communities
+        { invitedMembers: memberData._id } // Invited to private communities
+      ]
     }
     
     // Get communities
