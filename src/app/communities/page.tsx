@@ -175,6 +175,11 @@ export default function CommunitiesPage() {
     }
   }
 
+  const handleManageMembers = (community: CommunityPopulated) => {
+    setSelectedCommunity(community)
+    setIsManagementOpen(true)
+  }
+
   const getCommunityTypeLabel = (type: string) => {
     switch (type) {
       case 'team': return 'Team'
@@ -355,7 +360,16 @@ export default function CommunitiesPage() {
                             <Button
                               variant="outline"
                               size="sm"
+                              onClick={() => handleManageMembers(community)}
+                              title="Manage Members"
+                            >
+                              <UserPlus className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
                               onClick={() => handleEditCommunity(community)}
+                              title="Edit Community"
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
@@ -363,6 +377,7 @@ export default function CommunitiesPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => handleDeleteCommunity(community.id)}
+                              title="Delete Community"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -515,6 +530,18 @@ export default function CommunitiesPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Community Management Modal */}
+        {isManagementOpen && selectedCommunity && (
+          <CommunityManagement
+            community={selectedCommunity}
+            onClose={() => setIsManagementOpen(false)}
+            onUpdate={() => {
+              loadCommunities()
+              setIsManagementOpen(false)
+            }}
+          />
         )}
       </div>
     </DashboardLayout>
